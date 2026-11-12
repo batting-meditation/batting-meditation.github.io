@@ -96,11 +96,13 @@ html.rot .portrait-tip { display: none !important; }
 #lbHall li .no { font-family: var(--f-num); color: var(--muted); font-size: 12px; }
 #lbHall li .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #lbHall li .m { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
-#lbMove summary { font-size: 12px; color: var(--muted); cursor: pointer; padding: 2px 0; }
-#lbMove .mv { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; }
-#lbMove .mvrow { display: flex; gap: 6px; }
-#lbMove input { flex: 1; min-width: 0; font: 500 13px var(--f-num); color: var(--chalk); background: rgba(255,255,255,0.06); border: 1px solid var(--panel-line); border-radius: 8px; padding: 7px 10px; }
-#lbMove .btn { padding: 7px 12px; font-size: 13px; }
+#lbAcct { display: flex; gap: 6px; }
+#lbAcct input { min-width: 0; }
+#lbAcct #lbName { flex: 1.15; }
+#lbPin { flex: 1; font: 500 14px var(--f-body); color: var(--chalk); background: rgba(255,255,255,0.06); border: 1px solid var(--panel-line); border-radius: 8px; padding: 9px 10px; box-sizing: border-box; }
+#lbPin:focus-visible { outline: 2px solid var(--bulb); outline-offset: 1px; }
+#lbAcct .btn { flex: none; padding: 9px 14px; font-size: 14px; }
+#lbAcctNote:empty { display: none; }
 #inappTip { position: absolute; left: 50%; top: calc(10px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 20; width: min(560px, calc(100% - 24px));
   background: #fff6e0; color: #2a1d00; border-radius: 10px; padding: 10px 12px; font: 500 13px/1.45 var(--f-body); box-shadow: 0 6px 24px rgba(0,0,0,.4); display: flex; gap: 10px; align-items: flex-start; }
 #inappTip b { font-weight: 700; }
@@ -285,17 +287,12 @@ html.compact .btn { padding: 9px 14px; }
         </div>
       </div>
       <div class="row zen-only" id="lbBox">
-        <input id="lbName" type="text" maxlength="12" autocomplete="nickname" enterkeyhint="done" placeholder="닉네임" aria-label="닉네임">
-        <details id="lbMove">
-          <summary>다른 기기·브라우저에서 이어하기</summary>
-          <div class="mv">
-            <span class="lab">내 기록 코드</span>
-            <div class="mvrow"><input id="lbCode" readonly aria-label="내 기록 코드"><button type="button" class="btn" id="lbCopy">복사</button></div>
-            <span class="lab">다른 곳에서 복사한 코드</span>
-            <div class="mvrow"><input id="lbPaste" placeholder="코드 붙여넣기" aria-label="다른 곳에서 복사한 코드" autocomplete="off"><button type="button" class="btn" id="lbLoad">불러오기</button></div>
-            <p class="note" id="lbMoveNote"></p>
-          </div>
-        </details>
+        <div id="lbAcct">
+          <input id="lbName" type="text" maxlength="12" autocomplete="username" enterkeyhint="next" placeholder="닉네임" aria-label="닉네임">
+          <input id="lbPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" enterkeyhint="done" placeholder="비밀번호 4~6자리" aria-label="비밀번호 (숫자 4~6자리)">
+          <button type="button" class="btn" id="lbSave">확인</button>
+        </div>
+        <p class="note" id="lbAcctNote"></p>
         <div id="lbBoard" class="row" hidden>
           <div id="lbTabs" role="tablist"><button type="button" id="tabWeek" aria-pressed="true">이번 주</button><button type="button" id="tabHall" aria-pressed="false">명예의 전당</button></div>
           <ol id="lbList" class="scroll" aria-label="이번 주 순위"></ol>
@@ -395,8 +392,8 @@ const lb = { cfg: null, me: null, timer: 0, busy: false, soon() {}, refresh() {}
 if (ZEN) {
   try { lb.me = JSON.parse(localStorage.getItem(ZEN_KEY + 'player') || 'null'); } catch (e) {}
   try { const old = JSON.parse(localStorage.getItem('batting.zen.player') || 'null'); if (!lb.me && old && old.name) lb.me = { name: old.name }; } catch (e) {}   // keep the nickname from an earlier season, not the record
+  const hex = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => b.toString(16).padStart(2, '0')).join('');
   if (!lb.me || !lb.me.id || !lb.me.secret) {
-    const hex = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => b.toString(16).padStart(2, '0')).join('');
     const h = hex(16);
     lb.me = { id: `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`, secret: hex(24), name: (lb.me && lb.me.name) || '' };
   }
@@ -425,12 +422,12 @@ if (ZEN) {
       const all = []; for (let off = 0; off < 20000; off += 1000) { const page = await api(`zen_weekly?select=id,name,total&week=eq.${zen.week}&order=total.desc,updated_at.asc&limit=1000&offset=${off}`); all.push(...page); if (page.length < 1000) break; }
       const mi = all.findIndex(r => r.id === lb.me.id);
       let rank = mi >= 0 ? mi + 1 : null;
-      if (rank === null && lb.me.name && zen.total > 0) rank = all.filter(r => r.total > zen.total).length + 1;
+      if (rank === null && lb.me.claimed && zen.total > 0) rank = all.filter(r => r.total > zen.total).length + 1;
       zen.rank = rank; zen.paint();
       fill($('lbList'), all.map((r, i) => row(i + 1, r.name, r.total, r.id === lb.me.id)));
       const me = $('lbMe'); me.textContent = '';
       if (rank) { const li = row(rank, lb.me.name, mi >= 0 ? all[mi].total : zen.total, false); li.querySelector('.no').textContent = rank + '위'; me.appendChild(li); }
-      note(!lb.me.name ? '닉네임을 정하면 내 기록이 순위표에 올라가요.' : !all.length ? '이번 주 첫 기록을 남겨 보세요!' : '');
+      note(!lb.me.claimed ? '닉네임과 비밀번호를 정하면 내 기록이 순위표에 올라가요.' : !all.length ? '이번 주 첫 기록을 남겨 보세요!' : '');
     } catch (e) { note('순위표를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'); }
   };
   const setTab = (t) => {
@@ -439,59 +436,60 @@ if (ZEN) {
   };
   $('tabWeek').addEventListener('click', () => setTab('week')); $('tabHall').addEventListener('click', () => setTab('hall'));
   const submit = async (keepalive, week = zen.week, total = zen.total) => {
-    if (!lb.cfg || !lb.me.name || lb.busy || !(total > 0)) return;
+    if (!lb.cfg || !lb.me.claimed || lb.busy || !(total > 0)) return;
     lb.busy = true;
     try { await api('rpc/submit_zen_week', { method: 'POST', keepalive: !!keepalive, body: JSON.stringify({ p_id: lb.me.id, p_secret: lb.me.secret, p_name: lb.me.name, p_week: week, p_total: Math.round(total) }) }); lb.sent = week + ':' + total; }
-    catch (e) { note(/40[03]/.test(String(e)) ? '이 기기의 기록 코드가 서버와 맞지 않아요. 코드를 다시 불러와 주세요.' : '기록을 올리지 못했어요. 잠시 후 다시 시도할게요.'); }
+    catch (e) { if (/40[03]/.test(String(e))) { lb.me.claimed = false; keep(); paintAcct(); acctNote('닉네임과 비밀번호를 다시 넣어 주세요.'); } else note('기록을 올리지 못했어요. 잠시 후 다시 시도할게요.'); }
     lb.busy = false;
     if (!keepalive) lb.refresh();
   };
   lb.soon = () => { clearTimeout(lb.timer); lb.timer = setTimeout(() => submit(false), 3000); };
-  lb.flush = () => { if (lb.cfg && lb.me.name && lb.sent !== zen.week + ':' + zen.total) submit(true); };
-  // carry-over code: this device's id and secret in one string, to continue the same record in another browser or phone
-  const b64u = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const hexB = (h) => Uint8Array.from(h.match(/../g).map(x => parseInt(x, 16)));
-  const toCode = () => b64u(hexB(lb.me.id.replace(/-/g, '') + lb.me.secret));
-  const fromCode = (c) => {
+  lb.flush = () => { if (lb.cfg && lb.me.claimed && lb.sent !== zen.week + ':' + zen.total) submit(true); };
+  // nickname + PIN: set them once here, then '닉네임 + 비밀번호' continues the same record in any browser or phone
+  const acctNote = (t) => { $('lbAcctNote').textContent = t || ''; };
+  const paintAcct = () => { $('lbName').value = lb.me.name || ''; $('lbPin').value = ''; $('lbPin').placeholder = lb.me.claimed ? '새 비밀번호' : '비밀번호 4~6자리'; };
+  const rpc = (fn, body) => api('rpc/' + fn, { method: 'POST', body: JSON.stringify(body) });
+  let acctBusy = false;
+  const save = async () => {
+    const name = $('lbName').value.trim().slice(0, 12), pin = $('lbPin').value.trim();
+    if (!name) { acctNote('닉네임을 적어 주세요.'); return; }
+    if (pin && !/^\d{4,6}$/.test(pin)) { acctNote('비밀번호는 숫자 4~6자리예요.'); return; }
+    if (lb.me.claimed && name === lb.me.name && !pin) { acctNote(''); return; }
+    if (!lb.me.claimed && !pin) { acctNote('비밀번호도 정해 주세요. 다른 곳에서 이어할 때 써요.'); return; }
+    if (!lb.cfg) { acctNote('서버에 연결되지 않았어요. 잠시 후 다시 해 주세요.'); return; }
+    if (acctBusy) return; acctBusy = true; acctNote('확인하는 중…');
     try {
-      const bin = atob(c.trim().replace(/-/g, '+').replace(/_/g, '/')); if (bin.length !== 40) return null;
-      const h = Array.from(bin, ch => ch.charCodeAt(0).toString(16).padStart(2, '0')).join('');
-      return { id: `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`, secret: h.slice(32) };
-    } catch (e) { return null; }
+      const same = lb.me.claimed && name === lb.me.name, r = await rpc('zen_claim', { p_id: lb.me.id, p_secret: lb.me.secret, p_name: name, p_pin: pin || null });
+      if (r && r.ok) {
+        lb.me.name = r.name; lb.me.claimed = true; keep(); paintAcct(); setBackName(BATTER_KIT, lb.me.name);
+        acctNote(same ? '비밀번호를 바꿨어요.' : '저장했어요. 다른 기기에서도 닉네임과 비밀번호로 이어할 수 있어요.');
+        if (zen.total > 0) submit(false); else lb.refresh();
+      } else if (r && r.error === 'name taken') {
+        if (!pin) { acctNote('이미 있는 닉네임이에요. 내 닉네임이면 비밀번호도 넣어 주세요.'); }
+        else {
+          // the nickname is someone's: if the PIN is right it is this person on another browser, so continue that record
+          if (lb.me.claimed) lb.flush();
+          const ns = hex(24), L = await rpc('zen_login', { p_name: name, p_pin: pin, p_new_secret: ns });
+          if (L && L.ok) {
+            const carry = lb.me.claimed ? 0 : zen.total;   // what this browser hit before logging in goes onto the account
+            const rows = await api(`zen_weekly?select=total&id=eq.${L.id}&week=eq.${zen.week}`);
+            lb.me = { id: L.id, secret: ns, name: L.name, claimed: true }; keep(); paintAcct(); setBackName(BATTER_KIT, lb.me.name);
+            zen.total = zen.shown = zen.from = zen.to = (rows[0] ? rows[0].total : 0) + carry; zen.save(); lb.sent = null; zen.paint();
+            acctNote(`'${L.name}' 기록을 이어서 해요.`);
+            if (carry > 0) submit(false); else lb.refresh();
+          } else acctNote(L && L.error === 'locked' ? '비밀번호를 여러 번 틀렸어요. 10분 뒤에 다시 해 주세요.' : '이미 있는 닉네임이에요. 비밀번호가 맞지 않아요.');
+        }
+      } else acctNote({ 'need pin': '비밀번호도 정해 주세요.', 'bad pin': '비밀번호는 숫자 4~6자리예요.', 'not yours': '이 기기 정보가 맞지 않아요. 닉네임과 비밀번호를 다시 넣어 주세요.' }[r && r.error] || '저장하지 못했어요.');
+    } catch (e) { acctNote('저장하지 못했어요. 인터넷 연결을 확인해 주세요.'); }
+    acctBusy = false;
   };
-  const moveNote = (t) => { $('lbMoveNote').textContent = t || ''; };
-  $('lbCode').value = toCode();
-  $('lbCopy').addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText($('lbCode').value); moveNote('복사했어요. 다른 브라우저의 이 칸에 붙여넣으세요.'); }
-    catch (e) { $('lbCode').select(); moveNote('코드를 길게 눌러 복사해 주세요.'); }
-  });
-  $('lbLoad').addEventListener('click', async () => {
-    const got = fromCode($('lbPaste').value);
-    if (!got) { moveNote('코드가 올바르지 않아요.'); return; }
-    if (got.id === lb.me.id) { moveNote('이미 이 기록으로 하고 있어요.'); return; }
-    if (!lb.cfg) { moveNote('순위표에 연결된 뒤에 불러올 수 있어요.'); return; }
-    try {
-      const rows = await api(`zen_weekly?select=week,name,total&id=eq.${got.id}&order=updated_at.desc&limit=60`);
-      if (!rows.length) { moveNote('이 코드의 기록을 찾지 못했어요.'); return; }
-      const cur = rows.find(r => r.week === zen.week);
-      lb.me = { id: got.id, secret: got.secret, name: rows[0].name }; keep();
-      zen.total = zen.shown = zen.from = zen.to = cur ? cur.total : 0; zen.save(); lb.sent = zen.week + ':' + zen.total;
-      $('lbName').value = lb.me.name; $('lbCode').value = toCode(); $('lbPaste').value = '';
-      setBackName(BATTER_KIT, lb.me.name); zen.paint(); lb.refresh();
-      moveNote(`'${lb.me.name}' 기록을 이어서 해요.`);
-    } catch (e) { moveNote('불러오지 못했어요. 인터넷 연결을 확인해 주세요.'); }
-  });
-  $('lbName').value = lb.me.name || '';
-  $('lbName').addEventListener('change', () => {
-    const v = $('lbName').value.trim().slice(0, 12); $('lbName').value = v;
-    if (v === lb.me.name) return;
-    lb.me.name = v; keep(); setBackName(BATTER_KIT, v || '장 영 웅'); if (v && zen.total > 0) submit(false); else lb.refresh();
-  });
-  $('lbName').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); e.stopPropagation(); });
+  paintAcct();
+  $('lbSave').addEventListener('click', save);
+  for (const id of ['lbName', 'lbPin']) $(id).addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { if (id === 'lbName' && !lb.me.claimed && !$('lbPin').value) $('lbPin').focus(); else { e.target.blur(); save(); } } });
   fetch('assets/leaderboard.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
     if (!c || !/^https:\/\//.test(c.url || '') || !c.key) return;
     lb.cfg = c; $('lbBoard').hidden = false;
-    if (lb.me.name && zen.total > 0) submit(false); else lb.refresh();
+    if (lb.me.claimed && zen.total > 0) submit(false); else lb.refresh();
   }).catch(() => {});
 }
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
