@@ -84,6 +84,7 @@ body.zen .zen-hide, body.zen #stats, body.zen #result, body.zen #dragHint { disp
 #lbName:focus-visible { outline: 2px solid var(--bulb); outline-offset: 1px; }
 #lbList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 #lbList.scroll { max-height: min(240px, calc(var(--gh, 100vh) * 0.38)); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding-right: 4px; }
+html.rot #lbList.scroll, html.rot .sheet { touch-action: pan-x pan-y; }   /* turned page: the finger moves sideways on the glass to scroll it */
 #lbMe { list-style: none; margin: 4px 0 0; padding: 0; }
 #lbMe:empty { display: none; }
 #lbMe li, #lbList li { display: grid; grid-template-columns: 2.6em 1fr auto; align-items: baseline; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 14px; }
