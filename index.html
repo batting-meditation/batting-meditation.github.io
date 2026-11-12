@@ -337,7 +337,7 @@ const $ = (id) => document.getElementById(id);
 const ZEN = !!document.querySelector('meta[name="batting-mode"][content="zen"]') || /[?&]zen\b/.test(location.search);
 document.documentElement.classList.toggle('zen', ZEN);
 // season: bumping it starts every device's total and leaderboard registration from zero (the nickname is kept)
-const ZEN_KEY = 'batting.zen.s2.';
+const ZEN_KEY = 'batting.zen.s3.';
 // the week rolls over at Monday 00:00 Korea time (ISO week, e.g. 2026-W46); the total is this week's
 const weekKey = (ms = Date.now()) => {
   const d = new Date(ms + 9 * 3600e3), dow = (d.getUTCDay() + 6) % 7, th = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - dow + 3));
@@ -396,7 +396,7 @@ if (ZEN) (() => {
 const lb = { cfg: null, me: null, timer: 0, busy: false, soon() {}, refresh() {} };
 if (ZEN) {
   try { lb.me = JSON.parse(localStorage.getItem(ZEN_KEY + 'player') || 'null'); } catch (e) {}
-  try { const old = JSON.parse(localStorage.getItem('batting.zen.player') || 'null'); if (!lb.me && old && old.name) lb.me = { name: old.name }; } catch (e) {}   // keep the nickname from an earlier season, not the record
+  for (const k of ['batting.zen.s2.player', 'batting.zen.player']) { try { const old = JSON.parse(localStorage.getItem(k) || 'null'); if (!lb.me && old && old.name) lb.me = { name: old.name }; } catch (e) {} }   // keep the nickname from an earlier season, not the record
   const hex = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => b.toString(16).padStart(2, '0')).join('');
   if (!lb.me || !lb.me.id || !lb.me.secret) {
     const h = hex(16);
