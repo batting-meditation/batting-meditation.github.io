@@ -83,7 +83,14 @@ body.zen .zen-hide, body.zen #stats, body.zen #result, body.zen #dragHint { disp
 #lbName { font: 500 15px var(--f-body); color: var(--chalk); background: rgba(255,255,255,0.06); border: 1px solid var(--panel-line); border-radius: 8px; padding: 9px 12px; width: 100%; box-sizing: border-box; }
 #lbName:focus-visible { outline: 2px solid var(--bulb); outline-offset: 1px; }
 #lbList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-#lbList li { display: grid; grid-template-columns: 2.2em 1fr auto; align-items: baseline; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 14px; }
+#lbList.scroll { max-height: min(240px, calc(var(--gh, 100vh) * 0.38)); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding-right: 4px; }
+#lbMe { list-style: none; margin: 4px 0 0; padding: 0; }
+#lbMe:empty { display: none; }
+#lbMe li, #lbList li { display: grid; grid-template-columns: 2.6em 1fr auto; align-items: baseline; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 14px; }
+#lbMe li { background: var(--bulb-dim); color: #fff; font-weight: 700; border: 1px solid rgba(255,180,58,.45); }
+#lbMe li .no, #lbMe li .m { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+#lbMe li .no { text-align: right; }
+#lbMe li .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #lbList li:nth-child(odd) { background: rgba(255,255,255,0.03); }
 #lbList li.me { background: var(--bulb-dim); color: #fff; font-weight: 700; }
 #lbList li .no { font-family: var(--f-num); color: var(--muted); text-align: right; }
@@ -255,7 +262,8 @@ html.compact .btn { padding: 9px 14px; }
         <input id="lbName" type="text" maxlength="12" autocomplete="nickname" enterkeyhint="done" placeholder="닉네임" aria-label="닉네임">
         <div id="lbBoard" class="row" hidden>
           <span class="lab">누적 거리 순위</span>
-          <ol id="lbList" aria-live="polite"></ol>
+          <ol id="lbList" class="scroll" aria-label="전체 순위"></ol>
+          <ol id="lbMe" aria-label="내 순위" aria-live="polite"></ol>
           <p class="note" id="lbNote"></p>
         </div>
       </div>
@@ -325,16 +333,18 @@ if (ZEN) {
   lb.refresh = async () => {
     if (!lb.cfg) return;
     try {
-      const top = await api('zen_scores?select=id,name,total&order=total.desc,updated_at.asc&limit=10');
-      let rank = null;
-      if (lb.me.name && zen.total > 0) rank = (await api(`zen_scores?select=id&total=gt.${Math.round(zen.total)}&limit=1000`)).length + 1;
+      // the whole board (scrolls inside its box) and, pinned below it, your own row
+      const all = []; for (let off = 0; off < 20000; off += 1000) { const page = await api(`zen_scores?select=id,name,total&order=total.desc,updated_at.asc&limit=1000&offset=${off}`); all.push(...page); if (page.length < 1000) break; }
+      const mi = all.findIndex(r => r.id === lb.me.id);
+      let rank = mi >= 0 ? mi + 1 : null;
+      if (rank === null && lb.me.name && zen.total > 0) rank = all.filter(r => r.total > zen.total).length + 1;
       zen.rank = rank; zen.paint();
-      const ol = $('lbList'); ol.textContent = '';
-      top.forEach((r, i) => ol.appendChild(row(i + 1, r.name, r.total, r.id === lb.me.id)));
-      if (rank && !top.some(r => r.id === lb.me.id)) {
-        const gap = document.createElement('li'); gap.className = 'gap'; gap.textContent = '⋯'; ol.appendChild(gap);
-        ol.appendChild(row(rank, lb.me.name, zen.total, true));
-      }
+      const ol = $('lbList'), keepScroll = ol.scrollTop; ol.textContent = '';
+      all.forEach((r, i) => ol.appendChild(row(i + 1, r.name, r.total, r.id === lb.me.id)));
+      ol.scrollTop = keepScroll;
+      const me = $('lbMe'); me.textContent = '';
+      if (rank) { const li = row(rank, lb.me.name, mi >= 0 ? all[mi].total : zen.total, false); li.querySelector('.no').textContent = rank + '위'; li.querySelector('.nm').textContent = '나 · ' + lb.me.name; me.appendChild(li); }
+      const top = all;
       note(!lb.me.name ? '닉네임을 정하면 내 기록이 순위표에 올라가요.' : !top.length ? '아직 기록이 없어요. 첫 기록을 남겨 보세요!' : '');
     } catch (e) { note('순위표를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'); }
   };
