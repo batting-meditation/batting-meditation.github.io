@@ -1,5 +1,6 @@
 <meta charset="utf-8">
 <meta name="batting-mode" content="zen">
+<script>document.documentElement.classList.add("zen")</script>
 <title>타격 명상</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -66,10 +67,11 @@ html.rot .portrait-tip { display: none !important; }
 
 /* zen mode: nothing on screen but the running total of metres hit */
 .zen-only { display: none; }
-body:not(.zen) .zen-only { display: none !important; }
-body.zen .zen-only { display: block; }
-body.zen .topbar .zen-only { display: inline-block; }
-body.zen .zen-hide, body.zen #stats, body.zen #result, body.zen #dragHint { display: none !important; }
+/* the zen class sits on <html> (set before the page draws in zen.html), so the practice options never flash */
+:root:not(.zen) .zen-only { display: none !important; }
+.zen .zen-only { display: block; }
+.zen .topbar .zen-only { display: inline-block; }
+.zen .zen-hide, .zen #stats, .zen #result, .zen #dragHint { display: none !important; }
 #zenTotal {
   font-family: var(--f-num); font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; color: #fff;
   background: rgba(12, 24, 48, 0.6); border: 1px solid rgba(120,160,220,.25); border-radius: 4px; padding: 4px 10px;
@@ -271,7 +273,7 @@ html.compact .btn { padding: 9px 14px; }
       </div>
     </div>
     <div class="actions">
-      <button type="button" class="btn primary" id="startBtn">연습 시작</button>
+      <button type="button" class="btn primary" id="startBtn">시작</button>
       <button type="button" class="btn zen-hide" id="resetBtn">기록 초기화</button>
     </div>
     <p class="note zen-hide">방망이 모양 커서가 공이 올 자리로 알아서 따라가니, 타이밍에 맞춰 타격 버튼(또는 화면 아무 곳)만 누르면 됩니다. PC는 스페이스바로 타격합니다.</p>
@@ -290,7 +292,7 @@ html.compact .btn { padding: 9px 14px; }
 const $ = (id) => document.getElementById(id);
 // zen mode (zen.html, or ?zen): fastballs in the zone, no calls or stats, only the total distance hit so far (kept on this device)
 const ZEN = !!document.querySelector('meta[name="batting-mode"][content="zen"]') || /[?&]zen\b/.test(location.search);
-document.body.classList.toggle('zen', ZEN);
+document.documentElement.classList.toggle('zen', ZEN);
 // season: bumping it starts every device's total and leaderboard registration from zero (the nickname is kept)
 const ZEN_KEY = 'batting.zen.s2.';
 const zen = { total: 0, shown: 0, from: 0, to: 0, t0: 0 };
