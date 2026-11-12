@@ -2300,7 +2300,7 @@ const HIT_SOUNDS = {
     if (q >= 0.75) envSynth(ac, audioOut(), SFX_ENV.good, 0.8 + 0.2 * q);
     else envSynth(ac, audioOut(), SFX_ENV.weak, 0.9);
   } },
-  ref: { name: '이사만루형', play(q) { if (sndOK()) hitSoundRef(ac, audioOut(), q); } },
+  ref: { name: '참고형', play(q) { if (sndOK()) hitSoundRef(ac, audioOut(), q); } },
 };
 const sfx = {
   // the crack of a wooden bat: sharp transient, ringing wood partials, a low thump, and the park echo
