@@ -347,7 +347,7 @@ if (ZEN) {
       all.forEach((r, i) => ol.appendChild(row(i + 1, r.name, r.total, r.id === lb.me.id)));
       ol.scrollTop = keepScroll;
       const me = $('lbMe'); me.textContent = '';
-      if (rank) { const li = row(rank, lb.me.name, mi >= 0 ? all[mi].total : zen.total, false); li.querySelector('.no').textContent = rank + '위'; li.querySelector('.nm').textContent = '나 · ' + lb.me.name; me.appendChild(li); }
+      if (rank) { const li = row(rank, lb.me.name, mi >= 0 ? all[mi].total : zen.total, false); li.querySelector('.no').textContent = rank + '위'; me.appendChild(li); }
       const top = all;
       note(!lb.me.name ? '닉네임을 정하면 내 기록이 순위표에 올라가요.' : !top.length ? '아직 기록이 없어요. 첫 기록을 남겨 보세요!' : '');
     } catch (e) { note('순위표를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'); }
