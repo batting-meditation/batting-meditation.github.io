@@ -63,3 +63,18 @@ $$;
 
 revoke all on function public.submit_zen_week(uuid, text, text, text, bigint) from public;
 grant execute on function public.submit_zen_week(uuid, text, text, text, bigint) to anon, authenticated;
+
+-- 의견 보내기: anyone can send, nobody can read through the app (read it in the Table Editor: feedback)
+create table if not exists public.feedback (
+  id bigint generated always as identity primary key,
+  created_at timestamptz not null default now(),
+  kind text not null check (kind in ('요구사항', '불만', '오류', '기타')),
+  message text not null check (char_length(message) between 1 and 2000),
+  page text check (char_length(page) <= 40),
+  nickname text check (char_length(nickname) <= 12),
+  ua text check (char_length(ua) <= 400)
+);
+alter table public.feedback enable row level security;
+drop policy if exists "anyone can send feedback" on public.feedback;
+create policy "anyone can send feedback" on public.feedback for insert to anon, authenticated with check (true);
+grant insert on public.feedback to anon, authenticated;
