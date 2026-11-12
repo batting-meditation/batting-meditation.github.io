@@ -17,6 +17,6 @@
 
 ### 순위표 (선택)
 
-타격 명상은 Supabase(무료)에 **주간 누적 거리 순위**(한국 시간 월요일 0시에 새로 시작)와 **명예의 전당**(지난 주마다 1위)을 둡니다. Supabase 프로젝트의 SQL Editor에서 `tools/supabase-weekly.sql`을 실행한 뒤, `assets/leaderboard.json`에 `{"url": "https://<프로젝트>.supabase.co", "key": "<anon 또는 publishable 키>"}`를 넣으면 시작 화면에 순위표가 나타납니다. service_role/secret 키는 절대 넣지 마세요.
+타격 명상은 Supabase(무료)에 **주간 누적 거리 순위**(한국 시간 월요일 0시에 새로 시작)와 **명예의 전당**(지난 주마다 1위)을 둡니다. Supabase 프로젝트의 SQL Editor에서 `tools/supabase-weekly.sql`과 `tools/supabase-safety.sql`(기록 조작·욕설 닉네임·의견 도배 방지)을 차례로 실행한 뒤, `assets/leaderboard.json`에 `{"url": "https://<프로젝트>.supabase.co", "key": "<anon 또는 publishable 키>"}`를 넣으면 시작 화면에 순위표가 나타납니다. service_role/secret 키는 절대 넣지 마세요.
 
 닉네임과 비밀번호(숫자 4~6자리)를 정하면 어느 브라우저·폰에서든 같은 기록으로 이어서 할 수 있습니다. 카카오톡·인스타그램 같은 앱 안 브라우저로 열면 기본 브라우저로 넘기거나 여는 방법을 안내합니다.

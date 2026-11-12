@@ -484,7 +484,7 @@ if (ZEN) {
             if (carry > 0) submit(false); else lb.refresh();
           } else acctNote(L && L.error === 'locked' ? '비밀번호를 여러 번 틀렸어요. 10분 뒤에 다시 해 주세요.' : '이미 있는 닉네임이에요. 비밀번호가 맞지 않아요.');
         }
-      } else acctNote({ 'need pin': '비밀번호도 정해 주세요.', 'bad pin': '비밀번호는 숫자 4~6자리예요.', 'not yours': '이 기기 정보가 맞지 않아요. 닉네임과 비밀번호를 다시 넣어 주세요.' }[r && r.error] || '저장하지 못했어요.');
+      } else acctNote({ 'bad word': '쓸 수 없는 닉네임이에요. 다른 닉네임을 정해 주세요.', 'need pin': '비밀번호도 정해 주세요.', 'bad pin': '비밀번호는 숫자 4~6자리예요.', 'not yours': '이 기기 정보가 맞지 않아요. 닉네임과 비밀번호를 다시 넣어 주세요.' }[r && r.error] || '저장하지 못했어요.');
     } catch (e) { acctNote('저장하지 못했어요. 인터넷 연결을 확인해 주세요.'); }
     acctBusy = false;
   };
@@ -2876,6 +2876,7 @@ $('startBtn').addEventListener('click', () => {
     try {
       const r = await fetch(cfg.url.replace(/\/+$/, '') + '/rest/v1/feedback', { method: 'POST', headers: { apikey: cfg.key, ...(/^eyJ/.test(cfg.key) ? { Authorization: 'Bearer ' + cfg.key } : {}), 'Content-Type': 'application/json', Prefer: 'return=minimal' },
         body: JSON.stringify({ kind, message: msg.slice(0, 2000), page: ZEN ? '타격 명상' : '타격 연습', nickname: (ZEN && lb.me && lb.me.name) || null, ua: navigator.userAgent.slice(0, 400) }) });
+      if (r.status >= 400 && r.status < 500) { note('지금은 보낼 수 없어요. 잠시 후 다시 보내 주세요.'); busy = false; return; }
       if (!r.ok) throw new Error('HTTP ' + r.status);
       $('fbText').value = ''; note('보냈어요. 고마워요!'); setTimeout(() => { if ($('fbNote').textContent === '보냈어요. 고마워요!') panel.hidden = true; }, 1600);
     } catch (e) { note('보내지 못했어요. 인터넷 연결을 확인해 주세요.'); }
