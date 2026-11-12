@@ -126,6 +126,35 @@ html.rot #lbList.scroll, html.rot #lbHall.scroll, html.rot .sheet { touch-action
 #lbList li .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #lbList li .m { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
 #lbList li.gap { background: none; color: var(--muted); padding-block: 0; }
+/* friend duel */
+.sheet.duel-open .rows, .sheet.duel-open .actions, .sheet.duel-open #fbPanel, .sheet.duel-open .lead { display: none !important; }
+html.compact .sheet #dNote { display: block !important; }
+#duelPanel { gap: 10px; }
+#dTime { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#dCustom, #dLink, #dName { font: 500 15px var(--f-body); color: var(--chalk); background: rgba(255,255,255,0.06); border: 1px solid var(--panel-line); border-radius: 8px; padding: 9px 12px; width: 100%; box-sizing: border-box; }
+#dCustom { margin-top: 8px; }
+#dLink { font-family: var(--f-num); font-size: 13px; min-width: 0; }
+#dRoom { display: flex; flex-direction: column; gap: 10px; }
+#dRoom .dlink { display: flex; gap: 8px; } #dRoom .dlink .btn { flex: none; padding: 9px 12px; font-size: 14px; }
+#dVs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; font: 700 18px var(--f-body); color: var(--chalk); }
+#dVs b { color: var(--bulb); font: 400 22px var(--f-display); }
+#dVs #dMe { text-align: right; } #dVs .wait { color: var(--muted); font-weight: 500; font-size: 15px; }
+#dInfo { margin: 0; text-align: center; color: var(--muted); font-size: 13px; }
+#dNote { margin: 0; min-height: 1.2em; }
+#duelPanel .fbrow, #duelResult .fbrow { display: flex; gap: 8px; } #duelPanel .fbrow .btn, #duelResult .fbrow .btn { flex: 1; padding: 9px 14px; }
+#duelBar { position: absolute; left: 50%; top: calc(10px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); display: flex; gap: 14px; align-items: baseline;
+  background: rgba(12, 24, 48, 0.78); border: 1px solid rgba(120,160,220,.3); border-radius: 8px; padding: 6px 14px; font: 700 15px var(--f-body); color: #fff; white-space: nowrap; pointer-events: none; z-index: 3; }
+#duelBar #dbTime { font-family: var(--f-num); color: var(--bulb); font-size: 18px; min-width: 3.2em; text-align: center; }
+#duelBar b { font-family: var(--f-num); font-variant-numeric: tabular-nums; margin-left: 5px; }
+#duelBar #dbOpp { opacity: .85; } #duelBar .lead b { color: var(--bulb); }
+html.duel-on #zenHit, html.duel-on.narrow #zenHit { top: calc(58px + env(safe-area-inset-top, 0px)); }
+#duelCount { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 6; pointer-events: none;
+  font: 400 min(30vh, 160px) var(--f-display); color: #fff; text-shadow: 0 6px 30px rgba(0,0,0,.6); }
+#duelResult { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 7; background: rgba(4, 9, 18, 0.55); }
+#duelResult .box { background: var(--sheet-bg); border: 1px solid var(--panel-line); border-radius: 14px; padding: 18px 22px; width: min(420px, calc(100% - 32px)); display: flex; flex-direction: column; gap: 12px; text-align: center; }
+#drTitle { font: 400 34px var(--f-display); color: var(--bulb); } #drTitle.lose { color: var(--chalk); }
+#drScore { font: 700 17px var(--f-body); color: var(--chalk); } #drScore b { font-family: var(--f-num); }
+#drNote { margin: 0; color: var(--muted); font-size: 13px; }
 #zenHit {
   position: absolute; left: 0; right: 0; top: calc(12px + env(safe-area-inset-top, 0px)); text-align: center; pointer-events: none;
   font-family: var(--f-num); font-weight: 700; font-size: clamp(30px, 9vh, 54px); letter-spacing: 0.02em; font-variant-numeric: tabular-nums;
@@ -252,6 +281,9 @@ html.compact .btn { padding: 9px 14px; }
     <button class="iconbtn" id="menuBtn" type="button">설정</button>
   </div>
   <div id="zenHit" class="zen-only" aria-live="polite"></div>
+  <div id="duelBar" hidden><span id="dbTime"></span><span id="dbMe"></span><span id="dbOpp"></span></div>
+  <div id="duelCount" hidden></div>
+  <div id="duelResult" hidden><div class="box"><div id="drTitle"></div><div id="drScore"></div><div class="fbrow"><button type="button" class="btn" id="drLeave">나가기</button><button type="button" class="btn primary" id="drAgain">한 번 더</button></div><p class="note" id="drNote"></p></div></div>
   <div id="result"><div id="resMain"></div><div id="resSub"></div></div>
   <div id="stats"></div>
   <div id="dragHint">빈 곳을 드래그하면 타격 커서가 움직여요</div>
@@ -308,7 +340,23 @@ html.compact .btn { padding: 9px 14px; }
     <div class="actions">
       <button type="button" class="btn primary" id="startBtn">연습 시작</button>
       <button type="button" class="btn zen-hide" id="resetBtn">기록 초기화</button>
+      <button type="button" class="btn zen-only" id="duelBtn">친구와 대결</button>
       <button type="button" class="btn" id="fbBtn">의견 보내기</button>
+    </div>
+    <div id="duelPanel" class="row" hidden>
+      <span class="lab">친구와 1대1 대결 · 같은 공을 받아 제한시간 동안 누적 거리가 긴 사람이 이겨요</span>
+      <input id="dName" maxlength="12" autocomplete="nickname" placeholder="내 닉네임" aria-label="내 닉네임" hidden>
+      <div id="dCreate">
+        <div class="seg" id="dTime"><button type="button" data-s="60" aria-pressed="false">1분</button><button type="button" data-s="180" aria-pressed="true">3분</button><button type="button" data-s="300" aria-pressed="false">5분</button><button type="button" data-s="custom" aria-pressed="false">기타</button></div>
+        <input id="dCustom" type="number" inputmode="numeric" min="1" max="30" placeholder="몇 분? (1~30)" aria-label="대결 시간(분)" hidden>
+      </div>
+      <div id="dRoom" hidden>
+        <div id="dVs"><span id="dMe"></span><b>VS</b><span id="dOpp"></span></div>
+        <p id="dInfo"></p>
+        <div class="dlink"><input id="dLink" readonly aria-label="초대 링크"><button type="button" class="btn" id="dShare">초대 링크 보내기</button></div>
+      </div>
+      <p class="note dnote" id="dNote"></p>
+      <div class="fbrow"><button type="button" class="btn" id="dBack">뒤로</button><button type="button" class="btn primary" id="dGo">대결 만들기</button></div>
     </div>
     <div id="fbPanel" class="row" hidden>
       <span class="lab">의견 보내기</span>
@@ -346,6 +394,7 @@ const weekLabel = (key) => {   // '2026-W46' -> '11/9~11/15'
   const [y, w] = key.split('-W').map(Number), j4 = new Date(Date.UTC(y, 0, 4)), mon = new Date(j4 - ((j4.getUTCDay() + 6) % 7) * 864e5 + (w - 1) * 7 * 864e5), sun = new Date(+mon + 6 * 864e5);
   return `${mon.getUTCMonth() + 1}/${mon.getUTCDate()}~${sun.getUTCMonth() + 1}/${sun.getUTCDate()}`;
 };
+const DUEL = { onHit: null, onMenu: null, active: false };   // friend duel hooks (set up in the duel section)
 const zen = { total: 0, shown: 0, from: 0, to: 0, t0: 0, week: weekKey() };
 if (ZEN) {
   try { const w = JSON.parse(localStorage.getItem(ZEN_KEY + 'wk') || 'null'); if (w && w.week === zen.week) zen.total = Math.max(0, Math.round(+w.total || 0)); } catch (e) {}
@@ -489,15 +538,200 @@ if (ZEN) {
   paintAcct();
   $('lbSave').addEventListener('click', save);
   for (const id of ['lbName', 'lbPin']) $(id).addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { if (id === 'lbName' && !lb.me.claimed && !$('lbPin').value) $('lbPin').focus(); else { e.target.blur(); save(); } } });
+  // ---------- friend duel: 1:1, same pitches, longest total in the time limit wins (Supabase functions duel_*)
+  {
+    const sheet = document.querySelector('#menu .sheet'), panel = $('duelPanel'), dNote = (t) => { $('dNote').textContent = t || ''; };
+    const rpcD = (fn, body) => api('rpc/' + fn, { method: 'POST', body: JSON.stringify(body) });
+    const D = { code: null, tok: null, view: null, off: 0, poll: 0, round: 0, begun: 0, ended: 0, total: 0, sent: -1, secs: 180, busy: false };
+    const tokKey = (c) => 'batting.duel.' + c;
+    const myName = () => (lb.me.name || $('dName').value.trim()).slice(0, 12);
+    const fmtM = (m) => Math.round(m).toLocaleString('en-US') + 'm';
+    const mins = (v) => Math.round(v.duration / 60 * 10) / 10;
+    const serverNow = () => Date.now() + D.off;
+    const link = () => location.origin + location.pathname + '?duel=' + D.code;
+    const meName = () => D.view && (D.view.role === 'guest' ? D.view.guest : D.view.host);
+    const opp = () => D.view && (D.view.role === 'host' ? D.view.guest : D.view.host);
+    const mine = (v) => (v.role === 'host' ? v.host_total : v.guest_total) || 0, theirs = (v) => (v.role === 'host' ? v.guest_total : v.host_total) || 0;
+    const errMsg = (e) => ({ 'no duel': '대결을 찾을 수 없어요. 링크를 다시 확인해 주세요.', full: '이미 두 명이 들어간 대결이에요.', 'bad name': '쓸 수 없는 닉네임이에요.', 'same name': '상대와 다른 닉네임을 써 주세요.', 'no guest': '아직 친구가 들어오지 않았어요.', busy: '지금 대결이 너무 많아요. 잠시 후 다시 해 주세요.', 'bad time': '시간은 1~30분 사이로 정해 주세요.' }[e] || '잠시 후 다시 해 주세요.');
+    const show = (open) => { sheet.classList.toggle('duel-open', open); panel.hidden = !open; if (open) sheet.scrollTop = 0; };
+    const paint = () => {
+      const v = D.view, inRoom = !!(v && v.role), go = $('dGo');
+      $('dName').hidden = !!lb.me.name || inRoom;
+      $('dCreate').hidden = !!D.code; $('dRoom').hidden = !D.code || !v;
+      $('dBack').textContent = inRoom ? '나가기' : '뒤로';
+      go.hidden = false;
+      if (!D.code) { go.textContent = '대결 만들기'; return; }
+      if (!v) { go.hidden = true; return; }
+      $('dMe').textContent = inRoom ? meName() : v.host; $('dLink').value = link();
+      $('dRoom').querySelector('.dlink').hidden = !inRoom;
+      const o = inRoom ? opp() : (myName() || '나'), sp = document.createElement('span');
+      sp.textContent = o || '친구 기다리는 중…'; if (!o) sp.className = 'wait'; $('dOpp').replaceChildren(sp);
+      $('dInfo').textContent = `${mins(v)}분 대결 · 코드 ${v.code}`;
+      if (!inRoom) { go.textContent = '참가하기'; return; }
+      if (v.state === 'waiting') { go.hidden = true; dNote('초대 링크를 친구에게 보내 주세요. 친구가 들어오면 시작할 수 있어요.'); }
+      else if (v.state === 'ready' || v.state === 'done') { go.textContent = v.state === 'done' ? '한 번 더' : '대결 시작'; dNote('둘 중 누구든 시작을 누르면 3초 뒤에 같이 시작해요.'); }
+      else { go.hidden = true; dNote('대결 중이에요!'); }
+    };
+    const setView = (v, t0) => {
+      if (!v || v.error) return false;
+      if (t0) D.off = Date.parse(v.now) - (t0 + Date.now()) / 2;   // server clock offset, so both phones count down together
+      D.view = v; if (!panel.hidden) paint(); tickRound(); return true;
+    };
+    const poll = async () => {
+      if (!D.code || D.busy) return;
+      try { const t0 = Date.now(); setView(await rpcD('duel_state', { p_code: D.code, p_tok: D.tok }), t0); } catch (e) {}
+    };
+    const startPolling = () => { clearInterval(D.poll); D.poll = setInterval(poll, 1000); };
+    // ---- a round, driven by the server's start time and duration
+    const endAt = (v) => Date.parse(v.start_at) + v.duration * 1000;
+    const bar = () => {
+      const v = D.view; if (!v || !v.start_at) return;
+      const s = Math.ceil(Math.max(0, Math.min(endAt(v) - serverNow(), v.duration * 1000)) / 1000);
+      $('dbTime').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+      const me = Math.max(D.total, mine(v)), them = theirs(v);
+      const put = (el, name, m, lead) => { const b = document.createElement('b'); b.textContent = fmtM(m); el.replaceChildren(document.createTextNode(name), b); el.classList.toggle('lead', lead); };
+      put($('dbMe'), '나', me, me > them); put($('dbOpp'), opp() || '상대', them, them > me);
+    };
+    const tickRound = () => {
+      const v = D.view; if (!v || !v.role || !v.start_at || !v.guest) return;
+      const now = serverNow();
+      if (v.round !== D.round && now < endAt(v)) beginRound(v);
+      else if (D.round === v.round && now >= endAt(v) && D.ended !== v.round) endRound(v);
+    };
+    let raf = 0;
+    const loop = () => {
+      raf = 0; const v = D.view; if (!v || !DUEL.active) return;
+      const start = Date.parse(v.start_at), now = serverNow(), cd = $('duelCount');
+      if (now < start) { cd.hidden = false; cd.textContent = String(Math.ceil((start - now) / 1000)); }
+      else if (D.begun !== v.round) {
+        D.begun = v.round;
+        if (now - start < 1500) { cd.textContent = '시작!'; setTimeout(() => { if (cd.textContent === '시작!') cd.hidden = true; }, 700); } else cd.hidden = true;
+        pitchRng = mulberry32(v.seed); $('menu').hidden = true; paused = false;
+        initAudio(); if (ac && ac.state === 'suspended') ac.resume();
+        nextPitch();
+      }
+      bar(); tickRound();
+      if (DUEL.active) raf = requestAnimationFrame(loop);
+    };
+    const beginRound = (v) => {
+      D.round = v.round; D.total = mine(v); D.sent = D.total; D.ended = 0; DUEL.active = true;
+      $('duelResult').hidden = true; show(false); $('menu').hidden = true; paused = true;
+      document.documentElement.classList.add('duel-on'); $('duelBar').hidden = false; bar();
+      if (!raf) raf = requestAnimationFrame(loop);
+    };
+    let sending = false;
+    const sendScore = async () => {
+      if (!D.view || sending || D.sent >= D.total) return;
+      sending = true; const t = Math.round(D.total);
+      try { const t0 = Date.now(), v = await rpcD('duel_score', { p_code: D.code, p_tok: D.tok, p_round: D.round, p_total: t }); if (setView(v, t0)) D.sent = t; } catch (e) {}
+      sending = false; if (D.sent < Math.round(D.total)) setTimeout(sendScore, 300);
+    };
+    const endRound = (v) => {
+      D.ended = v.round; DUEL.active = false; pitchRng = null; paused = true; sendScore();
+      const cd = $('duelCount'); cd.textContent = '끝!'; cd.hidden = false;
+      setTimeout(async () => {   // give the other phone a moment to send its last hit
+        await sendScore(); await poll();
+        const w = D.view, me = mine(w), them = theirs(w);   // the server's totals decide
+        $('duelBar').hidden = true; document.documentElement.classList.remove('duel-on'); $('duelCount').hidden = true;
+        const t = $('drTitle'); t.textContent = me > them ? '승리!' : me < them ? '패배' : '무승부'; t.className = me >= them ? '' : 'lose';
+        const b1 = document.createElement('b'), b2 = document.createElement('b'); b1.textContent = fmtM(me); b2.textContent = fmtM(them);
+        $('drScore').replaceChildren(document.createTextNode('나 '), b1, document.createTextNode(' : '), b2, document.createTextNode(' ' + (opp() || '상대')));
+        $('drNote').textContent = ''; $('menu').hidden = true; paused = true; $('duelResult').hidden = false;
+      }, 2500);
+    };
+    DUEL.onHit = (m) => {
+      const v = D.view; if (!DUEL.active || !v) return;
+      const now = serverNow(); if (now < Date.parse(v.start_at) || now > endAt(v)) return;
+      D.total += m; bar(); sendScore();
+    };
+    DUEL.onMenu = () => { if (D.code && !DUEL.active && $('duelResult').hidden) { show(true); paint(); } };
+    const leave = () => {
+      clearInterval(D.poll); DUEL.active = false; pitchRng = null; D.code = D.view = null; D.round = D.begun = D.ended = 0;
+      $('duelBar').hidden = true; $('duelResult').hidden = true; $('duelCount').hidden = true; document.documentElement.classList.remove('duel-on');
+      if (location.search) history.replaceState(null, '', location.pathname);
+      show(false); dNote(''); paint();
+    };
+    // ---- ui
+    $('dTime').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      $('dTime').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      $('dCustom').hidden = b.dataset.s !== 'custom'; if (b.dataset.s === 'custom') $('dCustom').focus(); else D.secs = +b.dataset.s;
+    }));
+    for (const id of ['dCustom', 'dName']) $(id).addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.target.blur(); $('dGo').click(); } });
+    $('duelBtn').addEventListener('click', () => {
+      if (!lb.cfg) { acctNote('서버에 연결되지 않았어요. 잠시 후 다시 해 주세요.'); return; }
+      if (!lb.me.name && !$('dName').value) $('dName').value = $('lbName').value.trim();
+      $('fbPanel').hidden = true; show(true); paint(); dNote('');
+    });
+    $('dBack').addEventListener('click', () => { if (D.code) leave(); else show(false); });
+    $('dGo').addEventListener('click', async () => {
+      if (D.busy) return;
+      const name = myName(); if (!name) { dNote('닉네임을 먼저 적어 주세요.'); $('dName').hidden = false; $('dName').focus(); return; }
+      D.busy = true; dNote('잠시만요…');
+      try {
+        const t0 = Date.now();
+        if (!D.code) {   // make a room
+          let secs = D.secs;
+          if (!$('dCustom').hidden) { const m = +$('dCustom').value; if (!(m >= 1 && m <= 30)) { dNote('시간은 1~30분 사이로 정해 주세요.'); D.busy = false; return; } secs = Math.round(m * 60); }
+          const tok = hex(20), v = await rpcD('duel_create', { p_name: name, p_secs: secs, p_tok: tok });
+          if (!v || v.error) dNote(errMsg(v && v.error));
+          else {
+            D.code = v.code; D.tok = tok; try { localStorage.setItem(tokKey(v.code), tok); } catch (e) {}
+            history.replaceState(null, '', location.pathname + '?duel=' + v.code); setView(v, t0); paint(); startPolling();
+          }
+        } else if (!D.view || !D.view.role) {   // join as the guest
+          if (!D.tok) D.tok = hex(20);
+          const v = await rpcD('duel_join', { p_code: D.code, p_name: name, p_tok: D.tok });
+          if (!v || v.error) dNote(errMsg(v && v.error));
+          else { try { localStorage.setItem(tokKey(D.code), D.tok); } catch (e) {} setView(v, t0); paint(); startPolling(); }
+        } else {   // start, or start again
+          const v = await rpcD('duel_start', { p_code: D.code, p_tok: D.tok });
+          if (!v || v.error) dNote(errMsg(v && v.error)); else setView(v, t0);
+        }
+      } catch (e) { dNote('연결이 불안정해요. 잠시 후 다시 해 주세요.'); }
+      D.busy = false;
+    });
+    $('dShare').addEventListener('click', async () => {
+      const text = `${meName()}님이 ${mins(D.view)}분 타격 대결을 신청했어요!`;
+      try { if (navigator.share) { await navigator.share({ title: '타격 명상 대결', text, url: link() }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+      try { await navigator.clipboard.writeText(text + ' ' + link()); dNote('링크를 복사했어요. 친구에게 붙여넣어 보내 주세요.'); }
+      catch (e) { $('dLink').select(); dNote('링크를 길게 눌러 복사해 주세요.'); }
+    });
+    $('drAgain').addEventListener('click', async () => {
+      $('drNote').textContent = '잠시만요…';
+      try { const t0 = Date.now(), v = await rpcD('duel_start', { p_code: D.code, p_tok: D.tok }); if (!v || v.error) $('drNote').textContent = errMsg(v && v.error); else setView(v, t0); }
+      catch (e) { $('drNote').textContent = '연결이 불안정해요. 잠시 후 다시 해 주세요.'; }
+    });
+    $('drLeave').addEventListener('click', () => { leave(); openMenu(); });
+    // invited by a link: ?duel=CODE
+    const inv = (new URLSearchParams(location.search).get('duel') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    lb.onReady = async () => {
+      if (!inv || D.code) return;
+      D.code = inv; try { D.tok = localStorage.getItem(tokKey(inv)); } catch (e) {}
+      show(true); paint(); dNote('대결 정보를 불러오는 중…');
+      try {
+        const t0 = Date.now(), v = await rpcD('duel_state', { p_code: inv, p_tok: D.tok || '' });
+        if (!v || v.error) { D.code = null; paint(); dNote(errMsg(v && v.error)); return; }
+        setView(v, t0); paint();
+        if (v.role) startPolling();
+        else if (v.guest) { $('dGo').hidden = true; dNote(errMsg('full')); }
+        else dNote(`${v.host}님이 ${mins(v)}분 타격 대결을 신청했어요.${lb.me.name ? '' : ' 닉네임을 적고 참가해 주세요.'}`);
+      } catch (e) { dNote('연결이 불안정해요. 잠시 후 다시 해 주세요.'); }
+    };
+  }
   fetch('assets/leaderboard.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
     if (!c || !/^https:\/\//.test(c.url || '') || !c.key) return;
-    lb.cfg = c; $('lbBoard').hidden = false;
+    lb.cfg = c; $('lbBoard').hidden = false; if (lb.onReady) lb.onReady();
     if (lb.me.claimed && zen.total > 0) submit(false); else lb.refresh();
   }).catch(() => {});
 }
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const rand = (a, b) => a + Math.random() * (b - a);
+// pitch sequence randomness: seeded in a duel so both players get the same pitches in the same order
+let pitchRng = null;
+const prand = () => (pitchRng ? pitchRng() : Math.random());
+const prange = (a, b) => a + prand() * (b - a);
+const mulberry32 = (a) => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 const ease = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
 const seg = (t, t0, t1) => ease((t - t0) / (t1 - t0));
 const DEG = Math.PI / 180;
@@ -1661,8 +1895,8 @@ const PIT = () => MOCAP.pitchers[curPit], BATC = () => MOCAP.batters[curBat];
 // pick a delivery and a swing for the next pitch (several captured takes)
 function chooseTakes() {
   if (!MOCAP) return;
-  curPit = Math.floor(Math.random() * MOCAP.pitchers.length);
-  curBat = Math.floor(Math.random() * MOCAP.batters.length);
+  curPit = Math.floor(prand() * MOCAP.pitchers.length);
+  curBat = Math.floor(prand() * MOCAP.batters.length);
   const m = PIT().marks; CFG.windup = (m.release - m.set) / 120;
   if (PIT().release) RELEASE.copy(PIT().release);
 }
@@ -2460,29 +2694,29 @@ function pickPitchType() {
   if (ZEN || settings.mode !== 'mix') return 'fastball';
   const pool = ['fastball', ...settings.mix.filter(k => CFG.pitches[k])];
   const total = pool.reduce((s, k) => s + CFG.mixWeights[k], 0);
-  let r = Math.random() * total;
+  let r = prand() * total;
   for (const k of pool) { r -= CFG.mixWeights[k]; if (r <= 0) return k; }
   return 'fastball';
 }
 function pickTarget(type) {
   const z = CFG.zone;
-  if (ZEN || Math.random() < CFG.strikeRate) return { x: rand(-z.half + 0.01, z.half - 0.01), y: rand(z.bottom + 0.02, z.top - 0.02) };
+  if (ZEN || prand() < CFG.strikeRate) return { x: prange(-z.half + 0.01, z.half - 0.01), y: prange(z.bottom + 0.02, z.top - 0.02) };
   const low = type === 'curve' || type === 'change' ? 0.45 : 0.25;
-  const r = Math.random();
-  if (r < low) return { x: rand(-z.half, z.half), y: rand(0.12, z.bottom - 0.08) };
-  if (r < low + 0.15) return { x: rand(-z.half, z.half), y: rand(z.top + 0.08, 1.35) };
-  const sd = Math.random() < 0.5 ? -1 : 1;
-  return { x: sd * rand(z.half + 0.08, z.half + 0.3), y: rand(z.bottom - 0.05, z.top + 0.05) };
+  const r = prand();
+  if (r < low) return { x: prange(-z.half, z.half), y: prange(0.12, z.bottom - 0.08) };
+  if (r < low + 0.15) return { x: prange(-z.half, z.half), y: prange(z.top + 0.08, 1.35) };
+  const sd = prand() < 0.5 ? -1 : 1;
+  return { x: sd * prange(z.half + 0.08, z.half + 0.3), y: prange(z.bottom - 0.05, z.top + 0.05) };
 }
 function makePitch() {
   const type = pickPitchType(), P = CFG.pitches[type];
-  const band = Math.random(), scale = band < 0.2 ? rand(0.88, 0.95) : band < 0.8 ? rand(0.97, 1.03) : rand(1.03, 1.07);
-  const kmh = rand(P.kmh[0], P.kmh[1]) * scale;
+  const band = prand(), scale = band < 0.2 ? prange(0.88, 0.95) : band < 0.8 ? prange(0.97, 1.03) : prange(1.03, 1.07);
+  const kmh = prange(P.kmh[0], P.kmh[1]) * scale;
   const tgt = pickTarget(type);
   const r0 = RELEASE.clone();
   const vz = kmh / 3.6 * 0.95;
   const T = (0 - r0.z) / vz;
-  const a = new THREE.Vector3(P.ax * rand(0.85, 1.15), P.ay + rand(-0.6, 0.6), 0);
+  const a = new THREE.Vector3(P.ax * prange(0.85, 1.15), P.ay + prange(-0.6, 0.6), 0);
   const v0 = new THREE.Vector3((tgt.x - r0.x - 0.5 * a.x * T * T) / T, (tgt.y - r0.y - 0.5 * a.y * T * T) / T, vz);
   const z = CFG.zone, br = CFG.ballR;
   const strike = Math.abs(tgt.x) <= z.half + br && tgt.y >= z.bottom - br && tgt.y <= z.top + br;
@@ -2490,7 +2724,7 @@ function makePitch() {
   const p = { type, name: P.name, code: P.code, kmh: Math.round(kmh), r0, v0, a, T, Tc, tgt, strike, tRelease: 0, tCross: 0 };
   p.atContact = pitchPos(p, Tc, new THREE.Vector3());
   const e = CFG.autoErr * (type === 'fastball' ? 1 : 1.4);
-  p.predict = { x: p.atContact.x + rand(-2.5, 2.5) * e, y: p.atContact.y + (Math.random() + Math.random() + Math.random() - 1.5) * 1.6 * e };
+  p.predict = { x: p.atContact.x + prange(-2.5, 2.5) * e, y: p.atContact.y + (prand() + prand() + prand() - 1.5) * 1.6 * e };
   // as in the reference footage: the cursor always starts at the middle of the zone and only tracks the ball after release
   p.guess = { x: 0, y: (CFG.zone.bottom + CFG.zone.top) / 2 };
   return p;
@@ -2601,7 +2835,7 @@ function finishPitch(kind, info) {
   // kind: called | miss | foul | fair
   setPitchInfo(`${pitch.code} ${pitch.kmh}Km · ${pitch.name}`);
   // zen: pitch info and the timing word as usual; the batted ball's distance up top and the running total
-  if (ZEN) { if (kind === 'fair') { zen.hit(info.dist, info.hr); zen.add(info.dist); if (info.hr) sfx.cheer(); } return; }
+  if (ZEN) { if (kind === 'fair') { zen.hit(info.dist, info.hr); zen.add(info.dist); if (DUEL.onHit) DUEL.onHit(info.dist); if (info.hr) sfx.cheer(); } return; }
   stats.pitches++;
   if (!pitch.strike) stats.balls++;
   const call = pitch.strike ? '스트라이크' : '볼';
@@ -2847,7 +3081,7 @@ document.querySelectorAll('.seg[data-multi] button').forEach(b => b.addEventList
 document.querySelectorAll('[data-toggle]').forEach(b => b.addEventListener('click', () => {
   settings[b.dataset.toggle] = !settings[b.dataset.toggle]; syncMenu(); save();
 }));
-function openMenu() { paused = true; $('menu').hidden = false; if (ZEN) { zen.roll(); lb.refresh(); } $('startBtn').textContent = state === 'menu' ? (ZEN ? '시작' : '연습 시작') : '계속하기'; }
+function openMenu() { paused = true; $('menu').hidden = false; if (ZEN) { zen.roll(); lb.refresh(); if (DUEL.onMenu) DUEL.onMenu(); } $('startBtn').textContent = state === 'menu' ? (ZEN ? '시작' : '연습 시작') : '계속하기'; }
 function closeMenu() {
   $('menu').hidden = true; paused = false; initAudio();
   if (ac && ac.state === 'suspended') ac.resume();
