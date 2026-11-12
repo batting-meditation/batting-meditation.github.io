@@ -97,7 +97,8 @@ html.rot .portrait-tip { display: none !important; }
 .zen .rows { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "acct board" "bats board"; align-items: start; }
 .zen #lbAcctBox { grid-area: acct; } .zen #batsRow { grid-area: bats; } .zen #lbBox { grid-area: board; }
 html.narrow.zen .rows { grid-template-columns: minmax(0, 1fr); grid-template-areas: "acct" "bats" "board"; }
-#lbAcct { display: flex; gap: 6px; }
+.zen #lbAcctBox { display: flex; flex-direction: column; gap: 10px; }
+#lbAcct { display: flex; gap: 8px; }
 #lbAcct input { min-width: 0; }
 #lbPin { flex: 1; font: 500 14px var(--f-body); color: var(--chalk); background: rgba(255,255,255,0.06); border: 1px solid var(--panel-line); border-radius: 8px; padding: 9px 10px; box-sizing: border-box; }
 #lbPin:focus-visible { outline: 2px solid var(--bulb); outline-offset: 1px; }
