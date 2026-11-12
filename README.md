@@ -14,4 +14,6 @@
 
 ### 순위표 (선택)
 
-명상 버전은 Supabase(무료)에 누적 거리 순위표를 둘 수 있습니다. Supabase 프로젝트의 SQL Editor에서 `tools/supabase-leaderboard.sql`을 실행한 뒤, `assets/leaderboard.json`에 `{"url": "https://<프로젝트>.supabase.co", "key": "<anon 또는 publishable 키>"}`를 넣으면 시작 화면에 닉네임 입력과 순위표가 나타납니다. 이 파일이 없으면 순위표는 숨겨집니다. service_role/secret 키는 절대 넣지 마세요.
+타격 명상은 Supabase(무료)에 **주간 누적 거리 순위**(한국 시간 월요일 0시에 새로 시작)와 **명예의 전당**(지난 주마다 1위)을 둡니다. Supabase 프로젝트의 SQL Editor에서 `tools/supabase-weekly.sql`을 실행한 뒤, `assets/leaderboard.json`에 `{"url": "https://<프로젝트>.supabase.co", "key": "<anon 또는 publishable 키>"}`를 넣으면 시작 화면에 순위표가 나타납니다. service_role/secret 키는 절대 넣지 마세요.
+
+기록은 기기(브라우저)별로 저장됩니다. 설정의 "다른 기기·브라우저에서 이어하기"에서 기록 코드를 복사해 다른 곳에 붙여넣으면 같은 기록으로 이어서 할 수 있습니다. 카카오톡·인스타그램 같은 앱 안 브라우저로 열면 기본 브라우저로 넘기거나 여는 방법을 안내합니다.

@@ -82,12 +82,30 @@ html.rot .portrait-tip { display: none !important; }
 #zenTotal.bump { transform: scale(1.08); }
 #zenTotal .rk { font: 700 12px var(--f-body); color: var(--bulb); margin-left: 8px; }
 /* zen leaderboard (in the start sheet) */
-#lbBox[hidden], #lbBoard[hidden] { display: none !important; }
+#lbBox[hidden], #lbBoard[hidden], #lbList[hidden], #lbMe[hidden], #lbHall[hidden] { display: none !important; }
+#lbTabs { display: flex; gap: 4px; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 3px; }
+#lbTabs button { flex: 1; font: 500 13px var(--f-body); color: var(--chalk); background: transparent; border: 0; border-radius: 6px; padding: 6px; cursor: pointer; }
+#lbTabs button[aria-pressed="true"] { background: var(--bulb); color: #241400; font-weight: 700; }
+#lbHall { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+#lbHall li { display: grid; grid-template-columns: 7.2em 1fr auto; align-items: baseline; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 14px; }
+#lbHall li:nth-child(odd) { background: rgba(255,255,255,0.03); }
+#lbHall li .no { font-family: var(--f-num); color: var(--muted); font-size: 12px; }
+#lbHall li .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#lbHall li .m { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+#lbMove summary { font-size: 12px; color: var(--muted); cursor: pointer; padding: 2px 0; }
+#lbMove .mv { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; }
+#lbMove .mvrow { display: flex; gap: 6px; }
+#lbMove input { flex: 1; min-width: 0; font: 500 13px var(--f-num); color: var(--chalk); background: rgba(255,255,255,0.06); border: 1px solid var(--panel-line); border-radius: 8px; padding: 7px 10px; }
+#lbMove .btn { padding: 7px 12px; font-size: 13px; }
+#inappTip { position: absolute; left: 50%; top: calc(10px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 20; width: min(560px, calc(100% - 24px));
+  background: #fff6e0; color: #2a1d00; border-radius: 10px; padding: 10px 12px; font: 500 13px/1.45 var(--f-body); box-shadow: 0 6px 24px rgba(0,0,0,.4); display: flex; gap: 10px; align-items: flex-start; }
+#inappTip b { font-weight: 700; }
+#inappTip button { margin-left: auto; flex: none; border: 0; background: #2a1d00; color: #fff6e0; border-radius: 6px; padding: 4px 10px; font: 700 12px var(--f-body); cursor: pointer; }
 #lbName { font: 500 15px var(--f-body); color: var(--chalk); background: rgba(255,255,255,0.06); border: 1px solid var(--panel-line); border-radius: 8px; padding: 9px 12px; width: 100%; box-sizing: border-box; }
 #lbName:focus-visible { outline: 2px solid var(--bulb); outline-offset: 1px; }
 #lbList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-#lbList.scroll { max-height: min(240px, calc(var(--gh, 100vh) * 0.38)); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding-right: 4px; }
-html.rot #lbList.scroll, html.rot .sheet { touch-action: pan-x pan-y; }   /* turned page: the finger moves sideways on the glass to scroll it */
+#lbList.scroll, #lbHall.scroll { max-height: min(240px, calc(var(--gh, 100vh) * 0.38)); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding-right: 4px; }
+html.rot #lbList.scroll, html.rot #lbHall.scroll, html.rot .sheet { touch-action: pan-x pan-y; }   /* turned page: the finger moves sideways on the glass to scroll it */
 #lbMe { list-style: none; margin: 4px 0 0; padding: 0; }
 #lbMe:empty { display: none; }
 #lbMe li, #lbList li { display: grid; grid-template-columns: 2.6em 1fr auto; align-items: baseline; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 14px; }
@@ -264,10 +282,21 @@ html.compact .btn { padding: 9px 14px; }
       </div>
       <div class="row zen-only" id="lbBox">
         <input id="lbName" type="text" maxlength="12" autocomplete="nickname" enterkeyhint="done" placeholder="닉네임" aria-label="닉네임">
+        <details id="lbMove">
+          <summary>다른 기기·브라우저에서 이어하기</summary>
+          <div class="mv">
+            <span class="lab">내 기록 코드</span>
+            <div class="mvrow"><input id="lbCode" readonly aria-label="내 기록 코드"><button type="button" class="btn" id="lbCopy">복사</button></div>
+            <span class="lab">다른 곳에서 복사한 코드</span>
+            <div class="mvrow"><input id="lbPaste" placeholder="코드 붙여넣기" aria-label="다른 곳에서 복사한 코드" autocomplete="off"><button type="button" class="btn" id="lbLoad">불러오기</button></div>
+            <p class="note" id="lbMoveNote"></p>
+          </div>
+        </details>
         <div id="lbBoard" class="row" hidden>
-          <span class="lab">누적 거리 순위</span>
-          <ol id="lbList" class="scroll" aria-label="전체 순위"></ol>
+          <div id="lbTabs" role="tablist"><button type="button" id="tabWeek" aria-pressed="true">이번 주</button><button type="button" id="tabHall" aria-pressed="false">명예의 전당</button></div>
+          <ol id="lbList" class="scroll" aria-label="이번 주 순위"></ol>
           <ol id="lbMe" aria-label="내 순위" aria-live="polite"></ol>
+          <ol id="lbHall" class="scroll" aria-label="명예의 전당" hidden></ol>
           <p class="note" id="lbNote"></p>
         </div>
       </div>
@@ -295,16 +324,31 @@ const ZEN = !!document.querySelector('meta[name="batting-mode"][content="zen"]')
 document.documentElement.classList.toggle('zen', ZEN);
 // season: bumping it starts every device's total and leaderboard registration from zero (the nickname is kept)
 const ZEN_KEY = 'batting.zen.s2.';
-const zen = { total: 0, shown: 0, from: 0, to: 0, t0: 0 };
+// the week rolls over at Monday 00:00 Korea time (ISO week, e.g. 2026-W46); the total is this week's
+const weekKey = (ms = Date.now()) => {
+  const d = new Date(ms + 9 * 3600e3), dow = (d.getUTCDay() + 6) % 7, th = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - dow + 3));
+  const y = th.getUTCFullYear(), j4 = new Date(Date.UTC(y, 0, 4)), w = 1 + Math.round(((th - j4) / 864e5 - 3 + (j4.getUTCDay() + 6) % 7) / 7);
+  return `${y}-W${String(w).padStart(2, '0')}`;
+};
+const weekLabel = (key) => {   // '2026-W46' -> '11/9~11/15'
+  const [y, w] = key.split('-W').map(Number), j4 = new Date(Date.UTC(y, 0, 4)), mon = new Date(j4 - ((j4.getUTCDay() + 6) % 7) * 864e5 + (w - 1) * 7 * 864e5), sun = new Date(+mon + 6 * 864e5);
+  return `${mon.getUTCMonth() + 1}/${mon.getUTCDate()}~${sun.getUTCMonth() + 1}/${sun.getUTCDate()}`;
+};
+const zen = { total: 0, shown: 0, from: 0, to: 0, t0: 0, week: weekKey() };
 if (ZEN) {
-  try { zen.total = Math.max(0, Math.round(+localStorage.getItem(ZEN_KEY + 'total') || 0)); } catch (e) {}
+  try { const w = JSON.parse(localStorage.getItem(ZEN_KEY + 'wk') || 'null'); if (w && w.week === zen.week) zen.total = Math.max(0, Math.round(+w.total || 0)); } catch (e) {}
+  zen.save = () => { try { localStorage.setItem(ZEN_KEY + 'wk', JSON.stringify({ week: zen.week, total: zen.total })); } catch (e) {} };
   zen.shown = zen.from = zen.to = zen.total;
-  const paint = () => { $('zenTotal').innerHTML = '<span class="lab">누적</span>' + Math.round(zen.shown).toLocaleString('en-US') + '<small>m</small>' + (zen.rank ? `<span class="rk">${zen.rank}위</span>` : ''); };
+  const paint = () => { $('zenTotal').innerHTML = '<span class="lab">이번 주</span>' + Math.round(zen.shown).toLocaleString('en-US') + '<small>m</small>' + (zen.rank ? `<span class="rk">${zen.rank}위</span>` : ''); };
   zen.paint = paint;
+  // a new week: send what is left of the old one, then start again from zero
+  zen.roll = () => { const k = weekKey(); if (k === zen.week) return; lb.flush && lb.flush(); zen.week = k; zen.total = zen.shown = zen.from = zen.to = 0; zen.rank = null; lb.sent = null; zen.save(); paint(); lb.refresh(); };
+  setInterval(() => zen.roll(), 30000);
   let hitTimer = 0;
   zen.hit = (m, hr) => { const el = $('zenHit'); el.innerHTML = hr ? `홈런<small>${Math.round(m)}m</small>` : Math.round(m) + '<small>m</small>'; el.className = 'zen-only show' + (hr ? ' hr' : ''); clearTimeout(hitTimer); hitTimer = setTimeout(() => el.classList.remove('show'), 2200); };
   zen.add = (m) => {
-    zen.total += Math.round(m); try { localStorage.setItem(ZEN_KEY + 'total', String(zen.total)); } catch (e) {}
+    zen.roll();
+    zen.total += Math.round(m); zen.save();
     zen.from = zen.shown; zen.to = zen.total; zen.t0 = performance.now();
     $('zenTotal').classList.add('bump'); setTimeout(() => $('zenTotal').classList.remove('bump'), 260);
     const step = (now) => { const u = Math.min(1, (now - zen.t0) / 900), e = 1 - Math.pow(1 - u, 3); zen.shown = zen.from + (zen.to - zen.from) * e; paint(); if (u < 1) requestAnimationFrame(step); };
@@ -313,6 +357,26 @@ if (ZEN) {
   };
   paint();
 }
+// ---------- in-app browsers (KakaoTalk, Instagram, ...): their storage is separate from the phone's browser, so the
+// same person would get a separate record there. Open the page in the real browser where possible, else say how.
+if (ZEN) (() => {
+  const ua = navigator.userAgent, url = location.href.replace(/[?&]openExternalBrowser=1/, '');
+  const kakao = /KAKAOTALK/i.test(ua), line = /\bLine\//i.test(ua), android = /Android/i.test(ua);
+  const inapp = kakao || line || /Instagram|FBAN|FBAV|FB_IAB|NAVER\(inapp|DaumApps|everytimeApp|BAND\/|; wv\)/i.test(ua);
+  if (!inapp) return;
+  let tried = false; try { tried = sessionStorage.getItem('batting.ext') === '1'; sessionStorage.setItem('batting.ext', '1'); } catch (e) {}
+  if (!tried) {
+    if (kakao) location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url);
+    else if (line) location.href = url + (url.includes('?') ? '&' : '?') + 'openExternalBrowser=1';
+    else if (android) location.href = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(url) + ';end';
+  }
+  const tip = document.createElement('div'); tip.id = 'inappTip';
+  const txt = document.createElement('span');
+  txt.innerHTML = kakao || android ? '기본 브라우저로 열었어요. 기록은 <b>그 브라우저</b>에서 이어져요. 이 창은 닫아도 돼요.'
+    : '이 앱 안에서는 기록이 따로 저장돼요. <b>⋯ 메뉴 → 브라우저(Safari)로 열기</b>를 눌러 주세요.';
+  const x = document.createElement('button'); x.type = 'button'; x.textContent = '닫기'; x.onclick = () => tip.remove();
+  tip.append(txt, x); document.body.appendChild(tip);
+})();
 // ---------- zen leaderboard (Supabase; config in assets/leaderboard.json, set up with tools/supabase-leaderboard.sql) ----------
 // Each device registers once with a random id and secret kept in its storage; only that device can raise its own total.
 const lb = { cfg: null, me: null, timer: 0, busy: false, soon() {}, refresh() {} };
@@ -334,39 +398,82 @@ if (ZEN) {
     for (const [c, t] of [['no', no], ['nm', name], ['m', Math.round(total).toLocaleString('en-US') + 'm']]) { const sp = document.createElement('span'); sp.className = c; sp.textContent = t; li.appendChild(sp); }
     return li;
   };
+  const fill = (ol, rows) => { const keepScroll = ol.scrollTop; ol.textContent = ''; rows.forEach(r => ol.appendChild(r)); ol.scrollTop = keepScroll; };
+  let tab = 'week';
   lb.refresh = async () => {
     if (!lb.cfg) return;
     try {
-      // the whole board (scrolls inside its box) and, pinned below it, your own row
-      const all = []; for (let off = 0; off < 20000; off += 1000) { const page = await api(`zen_scores?select=id,name,total&order=total.desc,updated_at.asc&limit=1000&offset=${off}`); all.push(...page); if (page.length < 1000) break; }
+      if (tab === 'hall') {
+        const hall = await api('zen_hall?select=week,name,total&order=week.desc&limit=520');
+        fill($('lbHall'), hall.map(r => row(weekLabel(r.week), r.name, r.total, false)));
+        note(hall.length ? '' : '첫 주가 끝나면 그 주 1위가 여기에 올라가요.');
+        return;
+      }
+      // this week's whole board (scrolls inside its box) and, pinned below it, your own row
+      const all = []; for (let off = 0; off < 20000; off += 1000) { const page = await api(`zen_weekly?select=id,name,total&week=eq.${zen.week}&order=total.desc,updated_at.asc&limit=1000&offset=${off}`); all.push(...page); if (page.length < 1000) break; }
       const mi = all.findIndex(r => r.id === lb.me.id);
       let rank = mi >= 0 ? mi + 1 : null;
       if (rank === null && lb.me.name && zen.total > 0) rank = all.filter(r => r.total > zen.total).length + 1;
       zen.rank = rank; zen.paint();
-      const ol = $('lbList'), keepScroll = ol.scrollTop; ol.textContent = '';
-      all.forEach((r, i) => ol.appendChild(row(i + 1, r.name, r.total, r.id === lb.me.id)));
-      ol.scrollTop = keepScroll;
+      fill($('lbList'), all.map((r, i) => row(i + 1, r.name, r.total, r.id === lb.me.id)));
       const me = $('lbMe'); me.textContent = '';
       if (rank) { const li = row(rank, lb.me.name, mi >= 0 ? all[mi].total : zen.total, false); li.querySelector('.no').textContent = rank + '위'; me.appendChild(li); }
-      const top = all;
-      note(!lb.me.name ? '닉네임을 정하면 내 기록이 순위표에 올라가요.' : !top.length ? '아직 기록이 없어요. 첫 기록을 남겨 보세요!' : '');
+      note(!lb.me.name ? '닉네임을 정하면 내 기록이 순위표에 올라가요.' : !all.length ? '이번 주 첫 기록을 남겨 보세요!' : '');
     } catch (e) { note('순위표를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'); }
   };
-  const submit = async (keepalive) => {
-    if (!lb.cfg || !lb.me.name || lb.busy) return;
+  const setTab = (t) => {
+    tab = t; $('tabWeek').setAttribute('aria-pressed', String(t === 'week')); $('tabHall').setAttribute('aria-pressed', String(t === 'hall'));
+    $('lbList').hidden = $('lbMe').hidden = t !== 'week'; $('lbHall').hidden = t !== 'hall'; lb.refresh();
+  };
+  $('tabWeek').addEventListener('click', () => setTab('week')); $('tabHall').addEventListener('click', () => setTab('hall'));
+  const submit = async (keepalive, week = zen.week, total = zen.total) => {
+    if (!lb.cfg || !lb.me.name || lb.busy || !(total > 0)) return;
     lb.busy = true;
-    try { await api('rpc/submit_zen_score', { method: 'POST', keepalive: !!keepalive, body: JSON.stringify({ p_id: lb.me.id, p_secret: lb.me.secret, p_name: lb.me.name, p_total: Math.round(zen.total) }) }); lb.sent = zen.total; }
-    catch (e) { note('기록을 올리지 못했어요. 잠시 후 다시 시도할게요.'); }
+    try { await api('rpc/submit_zen_week', { method: 'POST', keepalive: !!keepalive, body: JSON.stringify({ p_id: lb.me.id, p_secret: lb.me.secret, p_name: lb.me.name, p_week: week, p_total: Math.round(total) }) }); lb.sent = week + ':' + total; }
+    catch (e) { note(/40[03]/.test(String(e)) ? '이 기기의 기록 코드가 서버와 맞지 않아요. 코드를 다시 불러와 주세요.' : '기록을 올리지 못했어요. 잠시 후 다시 시도할게요.'); }
     lb.busy = false;
     if (!keepalive) lb.refresh();
   };
   lb.soon = () => { clearTimeout(lb.timer); lb.timer = setTimeout(() => submit(false), 3000); };
-  lb.flush = () => { if (lb.cfg && lb.me.name && lb.sent !== zen.total) submit(true); };
+  lb.flush = () => { if (lb.cfg && lb.me.name && lb.sent !== zen.week + ':' + zen.total) submit(true); };
+  // carry-over code: this device's id and secret in one string, to continue the same record in another browser or phone
+  const b64u = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const hexB = (h) => Uint8Array.from(h.match(/../g).map(x => parseInt(x, 16)));
+  const toCode = () => b64u(hexB(lb.me.id.replace(/-/g, '') + lb.me.secret));
+  const fromCode = (c) => {
+    try {
+      const bin = atob(c.trim().replace(/-/g, '+').replace(/_/g, '/')); if (bin.length !== 40) return null;
+      const h = Array.from(bin, ch => ch.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+      return { id: `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`, secret: h.slice(32) };
+    } catch (e) { return null; }
+  };
+  const moveNote = (t) => { $('lbMoveNote').textContent = t || ''; };
+  $('lbCode').value = toCode();
+  $('lbCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText($('lbCode').value); moveNote('복사했어요. 다른 브라우저의 이 칸에 붙여넣으세요.'); }
+    catch (e) { $('lbCode').select(); moveNote('코드를 길게 눌러 복사해 주세요.'); }
+  });
+  $('lbLoad').addEventListener('click', async () => {
+    const got = fromCode($('lbPaste').value);
+    if (!got) { moveNote('코드가 올바르지 않아요.'); return; }
+    if (got.id === lb.me.id) { moveNote('이미 이 기록으로 하고 있어요.'); return; }
+    if (!lb.cfg) { moveNote('순위표에 연결된 뒤에 불러올 수 있어요.'); return; }
+    try {
+      const rows = await api(`zen_weekly?select=week,name,total&id=eq.${got.id}&order=updated_at.desc&limit=60`);
+      if (!rows.length) { moveNote('이 코드의 기록을 찾지 못했어요.'); return; }
+      const cur = rows.find(r => r.week === zen.week);
+      lb.me = { id: got.id, secret: got.secret, name: rows[0].name }; keep();
+      zen.total = zen.shown = zen.from = zen.to = cur ? cur.total : 0; zen.save(); lb.sent = zen.week + ':' + zen.total;
+      $('lbName').value = lb.me.name; $('lbCode').value = toCode(); $('lbPaste').value = '';
+      setBackName(BATTER_KIT, lb.me.name); zen.paint(); lb.refresh();
+      moveNote(`'${lb.me.name}' 기록을 이어서 해요.`);
+    } catch (e) { moveNote('불러오지 못했어요. 인터넷 연결을 확인해 주세요.'); }
+  });
   $('lbName').value = lb.me.name || '';
   $('lbName').addEventListener('change', () => {
     const v = $('lbName').value.trim().slice(0, 12); $('lbName').value = v;
     if (v === lb.me.name) return;
-    lb.me.name = v; keep(); setBackName(BATTER_KIT, v || '장 영 웅'); if (v) submit(false); else lb.refresh();
+    lb.me.name = v; keep(); setBackName(BATTER_KIT, v || '장 영 웅'); if (v && zen.total > 0) submit(false); else lb.refresh();
   });
   $('lbName').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); e.stopPropagation(); });
   fetch('assets/leaderboard.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
@@ -2727,7 +2834,7 @@ document.querySelectorAll('.seg[data-multi] button').forEach(b => b.addEventList
 document.querySelectorAll('[data-toggle]').forEach(b => b.addEventListener('click', () => {
   settings[b.dataset.toggle] = !settings[b.dataset.toggle]; syncMenu(); save();
 }));
-function openMenu() { paused = true; $('menu').hidden = false; if (ZEN) lb.refresh(); $('startBtn').textContent = state === 'menu' ? (ZEN ? '시작' : '연습 시작') : '계속하기'; }
+function openMenu() { paused = true; $('menu').hidden = false; if (ZEN) { zen.roll(); lb.refresh(); } $('startBtn').textContent = state === 'menu' ? (ZEN ? '시작' : '연습 시작') : '계속하기'; }
 function closeMenu() {
   $('menu').hidden = true; paused = false; initAudio();
   if (ac && ac.state === 'suspended') ac.resume();
