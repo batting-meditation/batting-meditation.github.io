@@ -1,4 +1,4 @@
-# batting_meditation
+# batting-meditation.github.io
 ## 타격 명상 / 타격 연습장
 
 - `index.html`: 타격 명상 (사이트 첫 화면)
