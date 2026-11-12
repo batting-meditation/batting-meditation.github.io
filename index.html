@@ -1,5 +1,7 @@
 <meta charset="utf-8">
-<title>타격 연습장</title>
+<meta name="batting-mode" content="zen">
+<script>document.documentElement.classList.add("zen")</script>
+<title>타격 명상</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -94,9 +96,11 @@ html.rot .portrait-tip { display: none !important; }
 #lbHall li .no { font-family: var(--f-num); color: var(--muted); font-size: 12px; }
 #lbHall li .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #lbHall li .m { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+.zen .rows { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "acct board" "bats board"; align-items: start; }
+.zen #lbAcctBox { grid-area: acct; } .zen #batsRow { grid-area: bats; } .zen #lbBox { grid-area: board; }
+html.narrow.zen .rows { grid-template-columns: minmax(0, 1fr); grid-template-areas: "acct" "bats" "board"; }
 #lbAcct { display: flex; gap: 6px; }
 #lbAcct input { min-width: 0; }
-#lbAcct #lbName { flex: 1.15; }
 #lbPin { flex: 1; font: 500 14px var(--f-body); color: var(--chalk); background: rgba(255,255,255,0.06); border: 1px solid var(--panel-line); border-radius: 8px; padding: 9px 10px; box-sizing: border-box; }
 #lbPin:focus-visible { outline: 2px solid var(--bulb); outline-offset: 1px; }
 #lbAcct .btn { flex: none; padding: 9px 14px; font-size: 14px; }
@@ -278,19 +282,21 @@ html.compact .btn { padding: 9px 14px; }
           <button type="button" id="x-change" data-val="change">체인지업</button>
         </div>
       </div>
-      <div class="row"><span class="lab">타석</span>
+      <div class="row zen-only" id="lbAcctBox">
+        <input id="lbName" type="text" maxlength="12" autocomplete="username" enterkeyhint="next" placeholder="닉네임" aria-label="닉네임">
+        <div id="lbAcct">
+          <input id="lbPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" enterkeyhint="done" placeholder="비밀번호 4~6자리" aria-label="비밀번호 (숫자 4~6자리)">
+          <button type="button" class="btn" id="lbSave">확인</button>
+        </div>
+        <p class="note" id="lbAcctNote"></p>
+      </div>
+      <div class="row" id="batsRow"><span class="lab">타석</span>
         <div class="seg" data-key="bats">
           <button type="button" id="b-r" data-val="R">우타자</button>
           <button type="button" id="b-l" data-val="L">좌타자</button>
         </div>
       </div>
       <div class="row zen-only" id="lbBox">
-        <div id="lbAcct">
-          <input id="lbName" type="text" maxlength="12" autocomplete="username" enterkeyhint="next" placeholder="닉네임" aria-label="닉네임">
-          <input id="lbPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" enterkeyhint="done" placeholder="비밀번호 4~6자리" aria-label="비밀번호 (숫자 4~6자리)">
-          <button type="button" class="btn" id="lbSave">확인</button>
-        </div>
-        <p class="note" id="lbAcctNote"></p>
         <div id="lbBoard" class="row" hidden>
           <div id="lbTabs" role="tablist"><button type="button" id="tabWeek" aria-pressed="true">이번 주</button><button type="button" id="tabHall" aria-pressed="false">명예의 전당</button></div>
           <ol id="lbList" class="scroll" aria-label="이번 주 순위"></ol>
@@ -301,7 +307,7 @@ html.compact .btn { padding: 9px 14px; }
       </div>
     </div>
     <div class="actions">
-      <button type="button" class="btn primary" id="startBtn">연습 시작</button>
+      <button type="button" class="btn primary" id="startBtn">시작</button>
       <button type="button" class="btn zen-hide" id="resetBtn">기록 초기화</button>
       <button type="button" class="btn" id="fbBtn">의견 보내기</button>
     </div>
