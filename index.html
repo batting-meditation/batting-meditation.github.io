@@ -137,7 +137,15 @@ html.compact .sheet #dNote { display: block !important; }
 #dCustom { margin-top: 8px; }
 #dLink { font-family: var(--f-num); font-size: 13px; min-width: 0; }
 #dRoom { display: flex; flex-direction: column; gap: 10px; }
-#dRoom .dlink { display: flex; gap: 8px; } #dRoom .dlink .btn { flex: none; padding: 9px 12px; font-size: 14px; }
+#dRoom .dlink { display: flex; gap: 8px; } #dRoom .dlink .btn, .dcode .btn, .djoin .btn { flex: none; padding: 9px 12px; font-size: 14px; }
+.dinvite { display: flex; flex-direction: column; gap: 8px; }
+.dcode { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--panel-line); border-radius: 10px; padding: 8px 10px 8px 14px; }
+.dcode span { color: var(--muted); font-size: 13px; }
+.dcode b { flex: 1; font: 700 28px var(--f-num); letter-spacing: 0.18em; color: var(--bulb); user-select: all; }
+.djoin { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--panel-line); }
+.djoin span { color: var(--muted); font-size: 13px; white-space: nowrap; }
+#dJoinCode { flex: 1; min-width: 0; font: 700 16px var(--f-num); letter-spacing: 0.15em; text-transform: uppercase; color: var(--chalk); background: rgba(255,255,255,0.06); border: 1px solid var(--panel-line); border-radius: 8px; padding: 8px 12px; }
+html.narrow .djoin span { display: none; }
 #dVs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; font: 700 18px var(--f-body); color: var(--chalk); }
 #dVs b { color: var(--bulb); font: 400 22px var(--f-display); }
 #dVs #dMe { text-align: right; } #dVs .wait { color: var(--muted); font-weight: 500; font-size: 15px; }
@@ -351,11 +359,15 @@ html.compact .btn { padding: 9px 14px; }
       <div id="dCreate">
         <div class="seg" id="dTime"><button type="button" data-s="60" aria-pressed="false">1분</button><button type="button" data-s="180" aria-pressed="true">3분</button><button type="button" data-s="300" aria-pressed="false">5분</button><button type="button" data-s="custom" aria-pressed="false">기타</button></div>
         <input id="dCustom" type="number" inputmode="numeric" min="1" max="30" placeholder="몇 분? (1~30)" aria-label="대결 시간(분)" hidden>
+        <div class="djoin"><span>초대 코드가 있나요?</span><input id="dJoinCode" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="코드 6자리" aria-label="초대 코드"><button type="button" class="btn" id="dJoinBtn">코드로 참가</button></div>
       </div>
       <div id="dRoom" hidden>
         <div id="dVs"><span id="dMe"></span><b>VS</b><span id="dOpp"></span></div>
         <p id="dInfo"></p>
-        <div class="dlink"><input id="dLink" readonly aria-label="초대 링크"><button type="button" class="btn" id="dShare">초대 링크 보내기</button></div>
+        <div class="dinvite">
+          <div class="dcode"><span>초대 코드</span><b id="dCode"></b><button type="button" class="btn" id="dCopyCode">코드 복사</button></div>
+          <div class="dlink"><input id="dLink" readonly aria-label="초대 링크"><button type="button" class="btn" id="dCopyLink">링크 복사</button><button type="button" class="btn primary" id="dShare">공유</button></div>
+        </div>
       </div>
       <p class="note dnote" id="dNote"></p>
       <div class="fbrow"><button type="button" class="btn" id="dBack">뒤로</button><button type="button" class="btn primary" id="dGo">대결 만들기</button></div>
@@ -542,7 +554,10 @@ if (ZEN) {
   for (const id of ['lbName', 'lbPin']) $(id).addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { if (id === 'lbName' && !lb.me.claimed && !$('lbPin').value) $('lbPin').focus(); else { e.target.blur(); save(); } } });
   // ---------- friend duel: 1:1, same pitches, longest total in the time limit wins (Supabase functions duel_*)
   {
-    const sheet = document.querySelector('#menu .sheet'), panel = $('duelPanel'), dNote = (t) => { $('dNote').textContent = t || ''; };
+    const sheet = document.querySelector('#menu .sheet'), panel = $('duelPanel');
+    let noteHold = 0;   // a message from a button stays a few seconds before the status line comes back
+    const dNote = (t, hold) => { $('dNote').textContent = t || ''; noteHold = hold ? Date.now() + 4000 : 0; };
+    const statusNote = (t) => { if (Date.now() > noteHold) dNote(t); };
     const rpcD = (fn, body) => api('rpc/' + fn, { method: 'POST', body: JSON.stringify(body) });
     const D = { code: null, tok: null, view: null, off: 0, poll: 0, round: 0, begun: 0, ended: 0, total: 0, sent: -1, secs: 180, busy: false };
     const tokKey = (c) => 'batting.duel.' + c;
@@ -554,7 +569,7 @@ if (ZEN) {
     const meName = () => D.view && (D.view.role === 'guest' ? D.view.guest : D.view.host);
     const opp = () => D.view && (D.view.role === 'host' ? D.view.guest : D.view.host);
     const mine = (v) => (v.role === 'host' ? v.host_total : v.guest_total) || 0, theirs = (v) => (v.role === 'host' ? v.guest_total : v.host_total) || 0;
-    const errMsg = (e) => ({ 'no duel': '대결을 찾을 수 없어요. 링크를 다시 확인해 주세요.', full: '이미 두 명이 들어간 대결이에요.', 'bad name': '쓸 수 없는 닉네임이에요.', 'same name': '상대와 다른 닉네임을 써 주세요.', 'no guest': '아직 친구가 들어오지 않았어요.', busy: '지금 대결이 너무 많아요. 잠시 후 다시 해 주세요.', 'bad time': '시간은 1~30분 사이로 정해 주세요.' }[e] || '잠시 후 다시 해 주세요.');
+    const errMsg = (e) => ({ 'no duel': '대결을 찾을 수 없어요. 코드나 링크를 다시 확인해 주세요.', full: '이미 두 명이 들어간 대결이에요.', 'bad name': '쓸 수 없는 닉네임이에요.', 'same name': '상대와 다른 닉네임을 써 주세요.', 'no guest': '아직 친구가 들어오지 않았어요.', busy: '지금 대결이 너무 많아요. 잠시 후 다시 해 주세요.', 'bad time': '시간은 1~30분 사이로 정해 주세요.' }[e] || '잠시 후 다시 해 주세요.');
     const show = (open) => { sheet.classList.toggle('duel-open', open); panel.hidden = !open; if (open) sheet.scrollTop = 0; };
     const paint = () => {
       const v = D.view, inRoom = !!(v && v.role), go = $('dGo');
@@ -565,14 +580,14 @@ if (ZEN) {
       if (!D.code) { go.textContent = '대결 만들기'; return; }
       if (!v) { go.hidden = true; return; }
       $('dMe').textContent = inRoom ? meName() : v.host; $('dLink').value = link();
-      $('dRoom').querySelector('.dlink').hidden = !inRoom;
+      $('dRoom').querySelector('.dinvite').hidden = !inRoom; $('dCode').textContent = v.code;
       const o = inRoom ? opp() : (myName() || '나'), sp = document.createElement('span');
       sp.textContent = o || '친구 기다리는 중…'; if (!o) sp.className = 'wait'; $('dOpp').replaceChildren(sp);
-      $('dInfo').textContent = `${mins(v)}분 대결 · 코드 ${v.code}`;
+      $('dInfo').textContent = `${mins(v)}분 대결`;
       if (!inRoom) { go.textContent = '참가하기'; return; }
-      if (v.state === 'waiting') { go.hidden = true; dNote('초대 링크를 친구에게 보내 주세요. 친구가 들어오면 시작할 수 있어요.'); }
-      else if (v.state === 'ready' || v.state === 'done') { go.textContent = v.state === 'done' ? '한 번 더' : '대결 시작'; dNote('둘 중 누구든 시작을 누르면 3초 뒤에 같이 시작해요.'); }
-      else { go.hidden = true; dNote('대결 중이에요!'); }
+      if (v.state === 'waiting') { go.hidden = true; statusNote('초대 링크를 친구에게 보내 주세요. 친구가 들어오면 시작할 수 있어요.'); }
+      else if (v.state === 'ready' || v.state === 'done') { go.textContent = v.state === 'done' ? '한 번 더' : '대결 시작'; statusNote('둘 중 누구든 시작을 누르면 3초 뒤에 같이 시작해요.'); }
+      else { go.hidden = true; statusNote('대결 중이에요!'); }
     };
     const setView = (v, t0) => {
       if (!v || v.error) return false;
@@ -692,11 +707,16 @@ if (ZEN) {
       } catch (e) { dNote('연결이 불안정해요. 잠시 후 다시 해 주세요.'); }
       D.busy = false;
     });
+    const invite = () => `${meName()}님이 ${mins(D.view)}분 타격 대결을 신청했어요! 초대 코드 ${D.code}`;
+    const copy = async (text, ok, field) => {
+      try { await navigator.clipboard.writeText(text); dNote(ok, true); }
+      catch (e) { if (field) { field.focus(); field.select(); } dNote('길게 눌러 복사해 주세요.', true); }
+    };
+    $('dCopyCode').addEventListener('click', () => copy(D.code, `코드 ${D.code}를 복사했어요. 친구는 '친구와 대결'에서 이 코드를 넣으면 돼요.`));
+    $('dCopyLink').addEventListener('click', () => copy(invite() + '\n' + link(), '초대 링크를 복사했어요. 친구에게 붙여넣어 보내 주세요.', $('dLink')));
     $('dShare').addEventListener('click', async () => {
-      const text = `${meName()}님이 ${mins(D.view)}분 타격 대결을 신청했어요!`;
-      try { if (navigator.share) { await navigator.share({ title: '타격 명상 대결', text, url: link() }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
-      try { await navigator.clipboard.writeText(text + ' ' + link()); dNote('링크를 복사했어요. 친구에게 붙여넣어 보내 주세요.'); }
-      catch (e) { $('dLink').select(); dNote('링크를 길게 눌러 복사해 주세요.'); }
+      try { if (navigator.share) { await navigator.share({ title: '타격 명상 대결', text: invite(), url: link() }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+      copy(invite() + '\n' + link(), '공유 기능이 없어서 초대 링크를 복사했어요. 친구에게 붙여넣어 보내 주세요.', $('dLink'));
     });
     $('drAgain').addEventListener('click', async () => {
       $('drNote').textContent = '잠시만요…';
@@ -704,21 +724,30 @@ if (ZEN) {
       catch (e) { $('drNote').textContent = '연결이 불안정해요. 잠시 후 다시 해 주세요.'; }
     });
     $('drLeave').addEventListener('click', () => { leave(); openMenu(); });
-    // invited by a link: ?duel=CODE
-    const inv = (new URLSearchParams(location.search).get('duel') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-    lb.onReady = async () => {
-      if (!inv || D.code) return;
-      D.code = inv; try { D.tok = localStorage.getItem(tokKey(inv)); } catch (e) {}
+    const cleanCode = (c) => (c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    const openCode = async (code) => {
+      D.code = code; D.view = null; D.tok = null; try { D.tok = localStorage.getItem(tokKey(code)); } catch (e) {}
       show(true); paint(); dNote('대결 정보를 불러오는 중…');
       try {
-        const t0 = Date.now(), v = await rpcD('duel_state', { p_code: inv, p_tok: D.tok || '' });
+        const t0 = Date.now(), v = await rpcD('duel_state', { p_code: code, p_tok: D.tok || '' });
         if (!v || v.error) { D.code = null; paint(); dNote(errMsg(v && v.error)); return; }
+        if (location.search !== '?duel=' + code) history.replaceState(null, '', location.pathname + '?duel=' + code);
         setView(v, t0); paint();
         if (v.role) startPolling();
         else if (v.guest) { $('dGo').hidden = true; dNote(errMsg('full')); }
         else dNote(`${v.host}님이 ${mins(v)}분 타격 대결을 신청했어요.${lb.me.name ? '' : ' 닉네임을 적고 참가해 주세요.'}`);
-      } catch (e) { dNote('연결이 불안정해요. 잠시 후 다시 해 주세요.'); }
+      } catch (e) { D.code = null; paint(); dNote('연결이 불안정해요. 잠시 후 다시 해 주세요.'); }
     };
+    $('dJoinCode').addEventListener('input', (e) => { const c = cleanCode(e.target.value); if (c !== e.target.value) e.target.value = c; });
+    $('dJoinCode').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.target.blur(); $('dJoinBtn').click(); } });
+    $('dJoinBtn').addEventListener('click', () => {
+      const c = cleanCode($('dJoinCode').value);
+      if (c.length !== 6) { dNote('초대 코드 6자리를 넣어 주세요.'); $('dJoinCode').focus(); return; }
+      $('dJoinCode').value = ''; openCode(c);
+    });
+    // invited by a link: ?duel=CODE
+    const inv = cleanCode(new URLSearchParams(location.search).get('duel'));
+    lb.onReady = () => { if (inv.length === 6 && !D.code) openCode(inv); };
   }
   fetch('assets/leaderboard.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(c => {
     if (!c || !/^https:\/\//.test(c.url || '') || !c.key) return;
