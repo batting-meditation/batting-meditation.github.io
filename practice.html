@@ -155,14 +155,7 @@ html.narrow .djoin span { display: none; }
 #duelBar #dbTime { font-family: var(--f-num); color: var(--bulb); font-size: 18px; min-width: 3.2em; text-align: center; }
 #duelBar b { font-family: var(--f-num); font-variant-numeric: tabular-nums; margin-left: 5px; }
 #duelBar #dbOpp { opacity: .85; } #duelBar .lead b { color: var(--bulb); }
-html.duel-on #pitchInfo, html.duel-on #zenTotal { visibility: hidden; }
-#oppView { position: absolute; left: max(14px, env(safe-area-inset-left, 0px)); top: calc(10px + env(safe-area-inset-top, 0px)); border: 1px solid rgba(160,190,235,.45); border-radius: 6px;
-  box-shadow: 0 4px 18px rgba(0,0,0,.35); pointer-events: none; z-index: 3; }
-#oppView .nm { position: absolute; left: 4px; top: 4px; max-width: calc(100% - 8px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font: 700 12px var(--f-body); color: #fff; background: rgba(12, 24, 48, 0.72); border-radius: 4px; padding: 2px 6px; }
-#oppView .tag { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font: 700 15px var(--f-num); color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.8);
-  opacity: 0; transition: opacity .2s; white-space: nowrap; }
-#oppView .tag.show { opacity: 1; } #oppView .tag.hr { color: var(--bulb); }
+html.duel-on #zenTotal { visibility: hidden; }   /* the duel bar takes the top of the screen */
 html.duel-on #zenHit, html.duel-on.narrow #zenHit { top: calc(58px + env(safe-area-inset-top, 0px)); }
 #duelCount { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 6; pointer-events: none;
   font: 400 min(30vh, 160px) var(--f-display); color: #fff; text-shadow: 0 6px 30px rgba(0,0,0,.6); }
@@ -297,7 +290,6 @@ html.compact .btn { padding: 9px 14px; }
     <button class="iconbtn" id="menuBtn" type="button">설정</button>
   </div>
   <div id="zenHit" class="zen-only" aria-live="polite"></div>
-  <div id="oppView" hidden><span class="nm" id="ovName"></span><span class="tag" id="ovTag"></span></div>
   <div id="duelBar" hidden><span id="dbTime"></span><span id="dbMe"></span><span id="dbOpp"></span></div>
   <div id="duelCount" hidden></div>
   <div id="duelResult" hidden><div class="box"><div id="drTitle"></div><div id="drScore"></div><div class="fbrow"><button type="button" class="btn" id="drLeave">나가기</button><button type="button" class="btn primary" id="drAgain">한 번 더</button></div><p class="note" id="drNote"></p></div></div>
@@ -415,10 +407,7 @@ const weekLabel = (key) => {   // '2026-W46' -> '11/9~11/15'
   const [y, w] = key.split('-W').map(Number), j4 = new Date(Date.UTC(y, 0, 4)), mon = new Date(j4 - ((j4.getUTCDay() + 6) % 7) * 864e5 + (w - 1) * 7 * 864e5), sun = new Date(+mon + 6 * 864e5);
   return `${mon.getUTCMonth() + 1}/${mon.getUTCDate()}~${sun.getUTCMonth() + 1}/${sun.getUTCDate()}`;
 };
-const DUEL = { onHit: null, onMenu: null, active: false };
-// the opponent's batter replayed in a small window during a duel (drawn by ghostFrame, below the main loop)
-const GHOST = { on: false, q: [], cur: null, clock: 1000, waitT: 1000, lastN: -1, bats: 'R', name: '', acc: 1, tp: 0, rt: null, quad: null, onTag: null,
-  sm: { adj: { t: -1, hips: new THREE.Vector3(), bend: 0, side: 0, footL: new THREE.Vector3(), footR: new THREE.Vector3(), init: false }, open: { t: -1, v: 0 }, pole: {}, lastBatFrame: null, waitFrom: null, finCarry: 0, tauCarry: 0, batterPreSwingF: 0 } };   // friend duel hooks (set up in the duel section)
+const DUEL = { onHit: null, onMenu: null, active: false };   // friend duel hooks (set up in the duel section)
 const zen = { total: 0, shown: 0, from: 0, to: 0, t0: 0, week: weekKey() };
 if (ZEN) {
   try { const w = JSON.parse(localStorage.getItem(ZEN_KEY + 'wk') || 'null'); if (w && w.week === zen.week) zen.total = Math.max(0, Math.round(+w.total || 0)); } catch (e) {}
@@ -569,7 +558,7 @@ if (ZEN) {
     const dNote = (t, hold) => { $('dNote').textContent = t || ''; noteHold = hold ? Date.now() + 4000 : 0; };
     const statusNote = (t) => { if (Date.now() > noteHold) dNote(t); };
     const rpcD = (fn, body) => api('rpc/' + fn, { method: 'POST', body: JSON.stringify(body) });
-    const D = { code: null, tok: null, view: null, off: 0, poll: 0, round: 0, begun: 0, ended: 0, total: 0, sent: -1, secs: 180, busy: false, evq: [] };
+    const D = { code: null, tok: null, view: null, off: 0, poll: 0, round: 0, begun: 0, ended: 0, total: 0, sent: -1, secs: 180, busy: false };
     const tokKey = (c) => 'batting.duel.' + c;
     const myName = () => (lb.me.name || $('dName').value.trim()).slice(0, 12);
     const fmtM = (m) => Math.round(m).toLocaleString('en-US') + 'm';
@@ -602,15 +591,7 @@ if (ZEN) {
     const setView = (v, t0) => {
       if (!v || v.error) return false;
       if (t0) D.off = Date.parse(v.now) - (t0 + Date.now()) / 2;   // server clock offset, so both phones count down together
-      D.view = v; if (!panel.hidden) paint(); tickRound();
-      if (GHOST.on && Array.isArray(v.opp_ev)) {   // the opponent's latest swings, for the replay window
-        for (const ev of v.opp_ev.slice().sort((a, b) => a.n - b.n)) {
-          if (!ev || ev.r !== D.round || !Number.isInteger(ev.n) || ev.n < 0 || ev.n > 5000) continue;
-          if (ev.b === 'L' || ev.b === 'R') GHOST.bats = ev.b;
-          ghostPush({ n: ev.n, k: ['called', 'miss', 'tip', 'contact'].includes(ev.k) ? ev.k : 'called', s: ev.s == null ? null : +ev.s, v: +ev.v || 0, l: +ev.l || 0, p: +ev.p || 0, d: ev.d == null ? null : Math.round(+ev.d) || 0, h: ev.h ? 1 : 0 });
-        }
-      }
-      return true;
+      D.view = v; if (!panel.hidden) paint(); tickRound(); return true;
     };
     const poll = async () => {
       if (!D.code || D.busy) return;
@@ -633,22 +614,6 @@ if (ZEN) {
       if (v.round !== D.round && now < endAt(v)) beginRound(v);
       else if (D.round === v.round && now >= endAt(v) && D.ended !== v.round) endRound(v);
     };
-    const sizeOpp = () => {
-      const el = $('oppView'), cs = getComputedStyle(document.documentElement), gw = parseFloat(cs.getPropertyValue('--gw')) || innerWidth, gh = parseFloat(cs.getPropertyValue('--gh')) || innerHeight;
-      const w = Math.round(Math.min(gw * 0.27, 300)); el.style.width = w + 'px'; el.style.height = Math.round(w * gh / gw) + 'px';
-    };
-    addEventListener('resize', () => { if (!$('oppView').hidden) sizeOpp(); });
-    let tagT = 0;
-    GHOST.onTag = (ev) => {
-      const tw = (e) => { const a = Math.abs(e); return a <= 0.015 ? 'PERFECT' : a <= 0.04 ? 'GOOD' : e < 0 ? 'FAST' : 'SLOW'; };
-      const t = ev.k === 'called' ? '지켜봄' : ev.k === 'miss' ? '헛스윙' : ev.d == null ? '파울' : `${ev.h ? '홈런 ' : ''}${fmtM(ev.d)}`;
-      const el = $('ovTag'); el.textContent = ev.s != null && ev.k !== 'called' && Math.abs(ev.s) <= 0.2 ? `${t} · ${tw(ev.s)}` : t;
-      el.className = 'tag show' + (ev.h ? ' hr' : ''); clearTimeout(tagT); tagT = setTimeout(() => { el.className = 'tag'; }, 1800);
-    };
-    const oppView = (on) => {
-      $('oppView').hidden = !on;
-      if (on) { $('ovName').textContent = opp() || '상대'; $('ovTag').className = 'tag'; sizeOpp(); ghostStart(opp() || '상대', GHOST.bats); } else ghostStop();
-    };
     let raf = 0;
     const loop = () => {
       raf = 0; const v = D.view; if (!v || !DUEL.active) return;
@@ -657,7 +622,7 @@ if (ZEN) {
       else if (D.begun !== v.round) {
         D.begun = v.round;
         if (now - start < 1500) { cd.textContent = '시작!'; setTimeout(() => { if (cd.textContent === '시작!') cd.hidden = true; }, 700); } else cd.hidden = true;
-        duelStart(v.seed); oppView(true); $('menu').hidden = true; paused = false;
+        pitchRng = mulberry32(v.seed); $('menu').hidden = true; paused = false;
         initAudio(); if (ac && ac.state === 'suspended') ac.resume();
         nextPitch();
       }
@@ -665,21 +630,20 @@ if (ZEN) {
       if (DUEL.active) raf = requestAnimationFrame(loop);
     };
     const beginRound = (v) => {
-      D.round = v.round; D.total = mine(v); D.sent = D.total; D.ended = 0; D.evq = []; DUEL.active = true;
+      D.round = v.round; D.total = mine(v); D.sent = D.total; D.ended = 0; DUEL.active = true;
       $('duelResult').hidden = true; show(false); $('menu').hidden = true; paused = true;
       document.documentElement.classList.add('duel-on'); $('duelBar').hidden = false; bar();
       if (!raf) raf = requestAnimationFrame(loop);
     };
     let sending = false;
     const sendScore = async () => {
-      if (!D.view || sending || (D.sent >= D.total && !D.evq.length)) return;
+      if (!D.view || sending || D.sent >= D.total) return;
       sending = true; const t = Math.round(D.total);
-      try { const ev = D.evq[0], body = { p_code: D.code, p_tok: D.tok, p_round: D.round, p_total: t }; if (ev) body.p_ev = ev;
-      const t0 = Date.now(), v = await rpcD('duel_score', body); if (setView(v, t0)) { D.sent = t; if (ev && D.evq[0] === ev) D.evq.shift(); } } catch (e) {}
-      sending = false; if (D.sent < Math.round(D.total) || D.evq.length) setTimeout(sendScore, 300);
+      try { const t0 = Date.now(), v = await rpcD('duel_score', { p_code: D.code, p_tok: D.tok, p_round: D.round, p_total: t }); if (setView(v, t0)) D.sent = t; } catch (e) {}
+      sending = false; if (D.sent < Math.round(D.total)) setTimeout(sendScore, 300);
     };
     const endRound = (v) => {
-      D.ended = v.round; DUEL.active = false; duelSeq.on = false; paused = true; sendScore();
+      D.ended = v.round; DUEL.active = false; pitchRng = null; paused = true; sendScore();
       const cd = $('duelCount'); cd.textContent = '끝!'; cd.hidden = false;
       setTimeout(async () => {   // give the other phone a moment to send its last hit
         await sendScore(); await poll();
@@ -688,22 +652,17 @@ if (ZEN) {
         const t = $('drTitle'); t.textContent = me > them ? '승리!' : me < them ? '패배' : '무승부'; t.className = me >= them ? '' : 'lose';
         const b1 = document.createElement('b'), b2 = document.createElement('b'); b1.textContent = fmtM(me); b2.textContent = fmtM(them);
         $('drScore').replaceChildren(document.createTextNode('나 '), b1, document.createTextNode(' : '), b2, document.createTextNode(' ' + (opp() || '상대')));
-        $('drNote').textContent = ''; $('menu').hidden = true; paused = true; oppView(false); $('duelResult').hidden = false;
+        $('drNote').textContent = ''; $('menu').hidden = true; paused = true; $('duelResult').hidden = false;
       }, 2500);
     };
     DUEL.onHit = (m) => {
       const v = D.view; if (!DUEL.active || !v) return;
       const now = serverNow(); if (now < Date.parse(v.start_at) || now > endAt(v)) return;
-      D.total += m; bar();   // sent together with this pitch's swing (onPitch comes right after)
-    };
-    DUEL.onPitch = (ev) => {
-      const v = D.view; if (!DUEL.active || !v) return;
-      const now = serverNow(); if (now < Date.parse(v.start_at) || now > endAt(v)) return;
-      ev.r = D.round; D.evq.push(ev); if (D.evq.length > 6) D.evq.splice(0, D.evq.length - 6); sendScore();
+      D.total += m; bar(); sendScore();
     };
     DUEL.onMenu = () => { if (D.code && !DUEL.active && $('duelResult').hidden) { show(true); paint(); } };
     const leave = () => {
-      clearInterval(D.poll); DUEL.active = false; duelSeq.on = false; oppView(false); D.code = D.view = null; D.round = D.begun = D.ended = 0;
+      clearInterval(D.poll); DUEL.active = false; pitchRng = null; D.code = D.view = null; D.round = D.begun = D.ended = 0;
       $('duelBar').hidden = true; $('duelResult').hidden = true; $('duelCount').hidden = true; document.documentElement.classList.remove('duel-on');
       if (location.search) history.replaceState(null, '', location.pathname);
       show(false); dNote(''); paint();
@@ -2060,9 +2019,7 @@ function poseFromMocap(rig, fr, toWorld, mirror, extra) {
   return g;
 }
 
-let lastPitTp = 0;
 function posePitcher(tp) {
-  lastPitTp = tp;
   if (!pitcherRig) return;
   if (!MOCAP) return posePitcherKeys(tp);
   const m = PIT().marks, hy = pitcherRig.hipsY;
@@ -2896,45 +2853,19 @@ function timingText(err) {
 
 // ---------- Flow ----------
 function setState(s) { state = s; stateT = gt; }
-// duel: both phones draw the same takes and pitches, in order, from one seeded list (also read by the opponent replay)
-const duelSeq = { on: false, rng: null, list: [], n: 0 };
-function duelEntry(k) {
-  const L = duelSeq.list;
-  while (L.length <= k && duelSeq.rng) {
-    const sv = [curPit, curBat, CFG.windup, RELEASE.clone(), pitchRng];
-    pitchRng = duelSeq.rng; chooseTakes(); const p = makePitch();
-    L.push({ pit: curPit, bat: curBat, windup: CFG.windup, rel: RELEASE.clone(), p });
-    curPit = sv[0]; curBat = sv[1]; CFG.windup = sv[2]; RELEASE.copy(sv[3]); pitchRng = sv[4];
-  }
-  return L[k];
-}
-function useEntry(e) { curPit = e.pit; curBat = e.bat; CFG.windup = e.windup; RELEASE.copy(e.rel); return Object.assign({}, e.p, { tRelease: 0, tCross: 0, whoosh: false }); }
-function duelStart(seed) { duelSeq.rng = mulberry32(seed); duelSeq.list = []; duelSeq.n = 0; duelSeq.on = true; }
 function nextPitch() {
   swing = null; hitBall = null;
   ball.visible = shadow.visible = trail.visible = false; trailPts.length = 0;
   posePitcher(0);
-  if (duelSeq.on) { const k = duelSeq.n++; pitch = useEntry(duelEntry(k)); pitch.n = k; }
-  else { chooseTakes(); pitch = makePitch(); }
-  setPitchInfo('');
+  chooseTakes();
+  pitch = makePitch(); setPitchInfo('');
   setState('wait'); $('stats').classList.remove('dim');
 }
 function finishPitch(kind, info) {
   // kind: called | miss | foul | fair
   setPitchInfo(`${pitch.code} ${pitch.kmh}Km · ${pitch.name}`);
   // zen: pitch info and the timing word as usual; the batted ball's distance up top and the running total
-  if (ZEN) {
-    if (kind === 'fair') { zen.hit(info.dist, info.hr); zen.add(info.dist); if (DUEL.onHit) DUEL.onHit(info.dist); if (info.hr) sfx.cheer(); }
-    if (DUEL.onPitch && pitch.n != null) {
-      const j = swing && swing.judge, r3 = (x) => Math.round(x * 1000) / 1000;
-      const ev = { n: pitch.n, b: settings.bats, k: !swing ? 'called' : j.kind };
-      if (swing) ev.s = r3(swing.err);
-      if (j && j.kind === 'contact') { ev.v = r3(j.ev); ev.l = r3(j.la); ev.p = r3(j.phiDeg); }
-      if (kind === 'fair') { ev.d = info.dist; ev.h = info.hr ? 1 : 0; }
-      DUEL.onPitch(ev);
-    }
-    return;
-  }
+  if (ZEN) { if (kind === 'fair') { zen.hit(info.dist, info.hr); zen.add(info.dist); if (DUEL.onHit) DUEL.onHit(info.dist); if (info.hr) sfx.cheer(); } return; }
   stats.pitches++;
   if (!pitch.strike) stats.balls++;
   const call = pitch.strike ? '스트라이크' : '볼';
@@ -3091,123 +3022,7 @@ function tick(now) {
   }
   updatePitFix(batterRig); updatePitFix(pitcherRig);
   renderer.render(scene, camera);
-  if (GHOST.on) ghostFrame(realDt);
   requestAnimationFrame(tick);
-}
-
-// ---------- duel: the opponent's batter, replayed in a small window from the swing data their phone sends ----------
-// The same rig, pitcher and ball are borrowed for a moment: the game state is swapped to the replay's, posed, drawn into
-// a small texture (about 20 times a second), and swapped back. Every frame the texture is pasted in the top-left corner.
-function ghostStart(name, bats) {
-  Object.assign(GHOST, { on: true, q: [], cur: null, lastN: -1, name, bats: bats || 'R', acc: 1, tp: 0, waitT: GHOST.clock });
-  GHOST.sm.adj.init = false; GHOST.sm.open.t = -1; GHOST.sm.lastBatFrame = null; GHOST.sm.waitFrom = null; GHOST.sm.finCarry = GHOST.sm.tauCarry = 0;
-  ghostName();
-}
-function ghostStop() { GHOST.on = false; GHOST.q = []; GHOST.cur = null; }
-function ghostPush(ev) {
-  if (!ev || !(ev.n > GHOST.lastN)) return;
-  GHOST.lastN = ev.n; GHOST.q.push(ev); if (GHOST.q.length > 1) GHOST.q.splice(0, GHOST.q.length - 1);   // running behind: jump to the latest
-}
-// a second canvas for the opponent's name on the back of the jersey
-let ghostNameCv = null, myNameCv = null;
-function ghostName() {
-  const t = BATTER_KIT.nameTex; if (!t) return;
-  if (!ghostNameCv) { myNameCv = t.image; ghostNameCv = document.createElement('canvas'); ghostNameCv.width = myNameCv.width; ghostNameCv.height = myNameCv.height; }
-  t.image = ghostNameCv; setBackName(BATTER_KIT, GHOST.name); t.image = myNameCv; t.needsUpdate = true;
-}
-// where the replay is at: same timeline as the game (wait -> windup -> flight -> hit/after), on its own clock
-function ghostStep(dt) {
-  const G = GHOST; G.clock += dt;
-  if (!G.cur && G.q.length) {
-    const ev = G.q.shift(), e = duelEntry(ev.n); if (!e) return;
-    const t0 = G.clock, p = Object.assign({}, e.p);
-    p.tRelease = t0 + 0.35 + e.windup; p.tCross = p.tRelease + p.Tc;
-    const c = { ev, e, p, t0, sw: null, hit: null, tHit: 0, tEnd: 0, tag: false };
-    if (ev.s != null && isFinite(ev.s)) c.sw = { t: p.tCross + clamp(+ev.s, -0.3, 0.3), err: clamp(+ev.s, -0.3, 0.3), judge: { kind: ev.k === 'miss' ? 'miss' : ev.k === 'tip' ? 'tip' : 'contact' }, resolved: false };
-    if (c.sw && c.sw.judge.kind !== 'miss') {
-      c.tHit = Math.max(p.tCross, c.sw.t);
-      const start = p.atContact.clone();
-      c.hit = c.sw.judge.kind === 'tip' ? simulateFrom(start, new THREE.Vector3(rand(-6, 6), rand(8, 16), rand(18, 28))).pts
-        : simulateHit(start, clamp(+ev.v || 0, 0, 250), clamp(+ev.l || 0, -40, 75) * DEG, clamp(+ev.p || 0, -90, 90) * DEG).pts;
-      c.tEnd = c.tHit + 1.8 + 1.0;
-    } else c.tEnd = p.tCross + CFG.missWindow + 0.03 + (c.sw ? 1.0 : 0.6);
-    G.cur = c;
-  }
-  const c = G.cur;
-  if (c && G.clock >= c.tEnd) { G.waitT = c.tEnd; G.cur = null; G.tp = 0; }
-  if (c && !c.tag && G.clock >= (c.hit ? c.tHit : c.p.tCross + 0.05) && G.onTag) { c.tag = true; G.onTag(c.ev); }
-}
-// the replay's state in the game's terms
-function ghostState() {
-  const G = GHOST, c = G.cur, T = G.clock;
-  if (!c) return { state: 'wait', stateT: G.waitT, pitch: null, swing: null, tp: 0 };
-  const e = c.e, p = c.p, w0 = c.t0 + 0.35, sw = c.sw && T >= c.sw.t ? c.sw : null;
-  if (T < w0) return { state: 'wait', stateT: G.waitT, pitch: p, swing: null, tp: 0 };
-  if (T < p.tRelease) return { state: 'windup', stateT: w0, pitch: p, swing: null, tp: T - w0 };
-  if (c.hit && T >= c.tHit) {
-    if (T < c.tHit + 1.8) return { state: 'hit', stateT: c.tHit, pitch: p, swing: sw, tp: e.windup + 0.6 + (T - c.tHit), ball: c.hit[Math.min(c.hit.length - 1, Math.floor((T - c.tHit) * 120))] };
-    return { state: 'after', stateT: c.tHit + 1.8, pitch: p, swing: sw, tp: e.windup + 2.4 };
-  }
-  const tA = p.tCross + CFG.missWindow + 0.03;
-  if (T < tA) { const b = pitchPos(p, T - p.tRelease, new THREE.Vector3()); return { state: 'flight', stateT: p.tRelease, pitch: p, swing: sw, tp: e.windup + (T - p.tRelease), ball: b.z > 1.8 ? null : b }; }
-  return { state: 'after', stateT: tA, pitch: p, swing: sw, tp: e.windup + (tA - p.tRelease) };
-}
-function ghostFrame(dt) {
-  const G = GHOST, el = $('oppView'); ghostStep(dt);
-  if (!el || el.hidden || !batterRig || !MOCAP) return;
-  const x = el.offsetLeft, y0 = el.offsetTop, w = el.offsetWidth, h = el.offsetHeight, fs = renderer.getSize(new THREE.Vector2()), gw = fs.x, gh = fs.y;
-  if (w < 20 || h < 20) return;
-  const pr = renderer.getPixelRatio(), W = Math.round(w * pr), H = Math.round(h * pr);
-  if (!G.rt || G.rt.width !== W || G.rt.height !== H) {
-    if (G.rt) G.rt.dispose();
-    G.rt = new THREE.WebGLRenderTarget(W, H, { samples: renderer.capabilities.isWebGL2 ? 4 : 0 }); G.acc = 1;
-    if (!G.quad) { G.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ depthTest: false, depthWrite: false })); G.qScene = new THREE.Scene(); G.qScene.add(G.quad); G.qCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); }
-    G.quad.material.map = G.rt.texture; G.quad.material.needsUpdate = true;
-  }
-  G.acc += dt;
-  if (G.acc >= 0.05) {   // refresh the replay picture ~20 times a second
-    G.acc = 0;
-    const gs = ghostState(), S = G.sm;
-    // swap in the replay
-    const mine = { gt, state, stateT, pitch, swing, paused, curPit, curBat, windup: CFG.windup, bats: settings.bats, control: settings.control, tp: lastPitTp,
-      adj: { t: adjSmooth.t, hips: adjSmooth.hips.clone(), bend: adjSmooth.bend, side: adjSmooth.side, footL: adjSmooth.footL.clone(), footR: adjSmooth.footR.clone(), init: adjSmooth.init },
-      open: { ...openSm }, pole: { ...poleMem }, lastBatFrame, waitFrom, finCarry, tauCarry, batterPreSwingF,
-      vis: [ball.visible, shadow.visible, trail.visible, cursorGroup.visible, pulse.visible, corners.visible, zoneGroup.visible], ballPos: ball.position.clone(), ballScale: ball.scale.x, shPos: shadow.position.clone(), cam: camera.position.clone(), camQ: camera.quaternion.clone() };
-    const putSm = (o) => {
-      adjSmooth.t = o.adj.t; adjSmooth.hips.copy(o.adj.hips); adjSmooth.bend = o.adj.bend; adjSmooth.side = o.adj.side; adjSmooth.footL.copy(o.adj.footL); adjSmooth.footR.copy(o.adj.footR); adjSmooth.init = o.adj.init;
-      Object.assign(openSm, o.open); for (const k of Object.keys(poleMem)) delete poleMem[k]; Object.assign(poleMem, o.pole);
-      lastBatFrame = o.lastBatFrame; waitFrom = o.waitFrom; finCarry = o.finCarry; tauCarry = o.tauCarry; batterPreSwingF = o.batterPreSwingF;
-    };
-    const e = G.cur ? G.cur.e : null;
-    gt = G.clock; state = gs.state; stateT = gs.stateT; pitch = gs.pitch; swing = gs.swing; paused = false;
-    if (e) { curPit = e.pit; curBat = e.bat; CFG.windup = e.windup; } settings.bats = G.bats; settings.control = 'auto';
-    putSm(S);
-    posePitcher(gs.tp); updateBatter(); updatePitFix(batterRig); updatePitFix(pitcherRig);
-    ball.visible = shadow.visible = !!gs.ball; trail.visible = cursorGroup.visible = pulse.visible = corners.visible = zoneGroup.visible = false;
-    const sdc = handSign(); camera.position.set(CAM_HOME.x * sdc, CAM_HOME.y, CAM_HOME.z); camera.lookAt(LOOK_HOME.x * sdc, LOOK_HOME.y, LOOK_HOME.z);
-    if (gs.ball) {
-      ball.position.copy(gs.ball); shadow.position.set(gs.ball.x, groundAt(gs.ball.x, gs.ball.z) + 0.02, gs.ball.z);
-      const dist = camera.position.distanceTo(ball.position), far = dist > 22 ? Math.max(0.28, Math.pow(22 / dist, 0.75)) : 1;
-      ball.scale.setScalar(Math.max(1, dist * Math.tan(camera.fov * DEG / 2) * 0.017 * far / (CFG.ballR * 1.15)) * 1.6);   // a bit bigger: the window is small
-    }
-    const nt = BATTER_KIT.nameTex; if (nt && ghostNameCv) { nt.image = ghostNameCv; nt.needsUpdate = true; }
-    renderer.setRenderTarget(G.rt); renderer.clear(); renderer.render(scene, camera); renderer.setRenderTarget(null);
-    if (nt && myNameCv) { nt.image = myNameCv; nt.needsUpdate = true; }
-    // ...and back to my own game
-    S.adj = { t: adjSmooth.t, hips: adjSmooth.hips.clone(), bend: adjSmooth.bend, side: adjSmooth.side, footL: adjSmooth.footL.clone(), footR: adjSmooth.footR.clone(), init: adjSmooth.init };
-    S.open = { ...openSm }; S.pole = { ...poleMem }; S.lastBatFrame = lastBatFrame; S.waitFrom = waitFrom; S.finCarry = finCarry; S.tauCarry = tauCarry; S.batterPreSwingF = batterPreSwingF;
-    gt = mine.gt; state = mine.state; stateT = mine.stateT; pitch = mine.pitch; swing = mine.swing; paused = mine.paused;
-    curPit = mine.curPit; curBat = mine.curBat; CFG.windup = mine.windup; settings.bats = mine.bats; settings.control = mine.control;
-    putSm(mine);
-    [ball.visible, shadow.visible, trail.visible, cursorGroup.visible, pulse.visible, corners.visible, zoneGroup.visible] = mine.vis;
-    ball.position.copy(mine.ballPos); ball.scale.setScalar(mine.ballScale); shadow.position.copy(mine.shPos); camera.position.copy(mine.cam); camera.quaternion.copy(mine.camQ);
-    posePitcher(mine.tp); updatePitFix(pitcherRig);   // my batter is re-posed at the start of the next frame
-  }
-  // paste the picture into its corner of the screen
-  renderer.autoClear = false;
-  renderer.setScissorTest(true); renderer.setScissor(x, gh - y0 - h, w, h); renderer.setViewport(x, gh - y0 - h, w, h);
-  renderer.render(G.qScene, G.qCam);
-  renderer.setScissorTest(false); renderer.setViewport(0, 0, gw, gh); renderer.autoClear = true;
 }
 
 // game size: the window, or the window turned 90 degrees when it is portrait (see html.rot in the styles)
