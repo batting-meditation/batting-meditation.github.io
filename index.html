@@ -2723,8 +2723,9 @@ let swing = null;          // { t, contact, ... }
 let hitBall = null;        // { pts, i0 } trajectory of a batted ball
 
 function pickPitchType() {
-  if (ZEN || settings.mode !== 'mix') return 'fastball';
-  const pool = ['fastball', ...settings.mix.filter(k => CFG.pitches[k])];
+  // zen (and duels): every pitch in the bag, fastballs about half the time; practice: what the menu picked
+  if (!ZEN && settings.mode !== 'mix') return 'fastball';
+  const pool = ZEN ? Object.keys(CFG.pitches) : ['fastball', ...settings.mix.filter(k => CFG.pitches[k])];
   const total = pool.reduce((s, k) => s + CFG.mixWeights[k], 0);
   let r = prand() * total;
   for (const k of pool) { r -= CFG.mixWeights[k]; if (r <= 0) return k; }
