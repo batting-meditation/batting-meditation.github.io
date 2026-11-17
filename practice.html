@@ -1,6 +1,14 @@
 <meta charset="utf-8">
 <title>타격 연습장</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#0d1829">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="타격 명상">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Chakra+Petch:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
@@ -250,7 +258,9 @@ html.narrow #zenHit { top: calc(64px + env(safe-area-inset-top, 0px)); font-size
 /* short screens (the game height, so it also holds when the page is turned) */
 html.compact .sheet { padding: 14px 16px; gap: 10px; }
 html.compact .sheet h1 { font-size: 22px; }
-html.compact .sheet .lead, html.compact .sheet .note:not(.portrait-tip):not(#lbNote) { display: none; }
+html.compact .sheet .lead, html.compact .sheet .note:not(.portrait-tip):not(#lbNote):not(#appNote) { display: none; }
+#appBox { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; } #appBtn { width: 100%; padding: 8px 14px; font-size: 14px; }
+#appNote { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--chalk); } #appNote:empty { display: none; }
 html.compact .rows { gap: 8px 14px; }
 html.compact .seg button { padding: 6px 4px; font-size: 13px; }
 html.compact .btn { padding: 9px 14px; }
@@ -337,6 +347,7 @@ html.compact .btn { padding: 9px 14px; }
         </div>
       </div>
       <div class="row zen-only" id="lbBox">
+        <div id="appBox"><button type="button" class="btn" id="appBtn">앱 설치하기</button><p class="note" id="appNote"></p></div>
         <div id="lbBoard" class="row" hidden>
           <div id="lbTabs" role="tablist"><button type="button" id="tabWeek" aria-pressed="true">이번 주</button><button type="button" id="tabHall" aria-pressed="false">명예의 전당</button></div>
           <ol id="lbList" class="scroll" aria-label="이번 주 순위"></ol>
@@ -3122,6 +3133,38 @@ $('startBtn').addEventListener('click', () => {
   closeMenu();
   try { const el = document.documentElement; if (el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen().then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {})).catch(() => {}); } catch (e) {}
 });
+// ---------- 앱 설치: Chrome/Edge/Samsung Internet show their own install dialog; elsewhere, how to add it by hand
+(() => {
+  if ('serviceWorker' in navigator && /^https:|^http:\/\/localhost/.test(location.href)) navigator.serviceWorker.register('sw.js').catch(() => {});
+  const box = $('appBox'), note = (t) => { $('appNote').textContent = t || ''; };
+  const installed = () => matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone === true;
+  if (!ZEN || installed()) { box.hidden = true; return; }
+  let bip = null;
+  addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); bip = e; });
+  addEventListener('appinstalled', () => { bip = null; note('설치했어요! 홈 화면(앱 목록)의 "타격 명상" 아이콘으로 열면 돼요.'); });
+  const ua = navigator.userAgent, iOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const how = () => {
+    if (iOS) return /CriOS|FxiOS|EdgiOS/.test(ua) ? '주소창 옆 공유 버튼(네모에 위쪽 화살표)을 누르고 "홈 화면에 추가"를 고르세요. 안 보이면 사파리에서 열어 주세요.'
+      : '아래쪽(아이패드는 위쪽) 공유 버튼(네모에 위쪽 화살표)을 누르고 "홈 화면에 추가"를 고르세요.';
+    if (/Android/.test(ua)) {
+      if (/SamsungBrowser/.test(ua)) return '아래 메뉴(≡) → "현재 페이지 추가" → "홈 화면"을 고르세요.';
+      if (/Firefox/.test(ua)) return '오른쪽 위 메뉴(⋮) → "설치"를 고르세요.';
+      return '오른쪽 위 메뉴(⋮) → "앱 설치" 또는 "홈 화면에 추가"를 고르세요.';
+    }
+    if (/Firefox/.test(ua)) return '파이어폭스는 앱 설치를 지원하지 않아요. 크롬이나 엣지에서 열어 주세요.';
+    if (/Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua)) return '위쪽 메뉴 막대의 "파일" → "Dock에 추가"를 고르세요.';
+    return '주소창 오른쪽의 설치 아이콘(모니터에 아래 화살표)을 누르세요. 이미 설치했다면 앱 목록에서 "타격 명상"을 열면 돼요.';
+  };
+  $('appBtn').addEventListener('click', async () => {
+    if (bip) {
+      const e = bip; bip = null; e.prompt();
+      try { const r = await e.userChoice; if (r && r.outcome === 'dismissed') note('나중에 다시 눌러서 설치할 수 있어요.'); } catch (err) {}
+      return;
+    }
+    note(how());
+  });
+})();
+
 // ---------- 의견 보내기: saved to the Supabase table 'feedback' (insert only; read it in the Supabase Table Editor)
 (() => {
   let cfg = null, kind = '요구사항', busy = false;

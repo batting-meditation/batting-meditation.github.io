@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "타격 명상",
+  "short_name": "타격 명상",
+  "description": "공이 오면 칩니다. 친 공의 비거리가 쌓이는 3D 타격 게임",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#0d1829",
+  "theme_color": "#0d1829",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
