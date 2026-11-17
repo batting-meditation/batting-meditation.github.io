@@ -259,8 +259,16 @@ html.narrow #zenHit { top: calc(64px + env(safe-area-inset-top, 0px)); font-size
 html.compact .sheet { padding: 14px 16px; gap: 10px; }
 html.compact .sheet h1 { font-size: 22px; }
 html.compact .sheet .lead, html.compact .sheet .note:not(.portrait-tip):not(#lbNote):not(#appNote) { display: none; }
-#appBox { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; } #appBtn { width: 100%; padding: 8px 14px; font-size: 14px; }
-#appNote { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--chalk); } #appNote:empty { display: none; }
+/* title row: the install button sits at the right end; how-to text floats under it instead of pushing the menu down */
+.titlebar { position: relative; display: flex; align-items: center; gap: 10px; }
+.titlebar h1 { flex: 1; min-width: 0; }
+#appBtn { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px 5px 8px; border-radius: 8px; cursor: pointer;
+  font: 700 13px var(--f-body); color: var(--chalk); background: rgba(255,255,255,0.06); border: 1px solid var(--panel-line); }
+#appBtn:hover { border-color: var(--bulb); color: var(--bulb); }
+#appBtn:focus-visible { outline: 2px solid var(--bulb); outline-offset: 2px; }
+#appNote { position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; width: min(320px, 100%); margin: 0; padding: 10px 12px; border-radius: 10px;
+  background: #16243b; border: 1px solid var(--bulb); box-shadow: 0 10px 30px rgba(0,0,0,.45); font-size: 13px; line-height: 1.5; color: var(--chalk); }
+#appNote:empty { display: none; }
 html.compact .rows { gap: 8px 14px; }
 html.compact .seg button { padding: 6px 4px; font-size: 13px; }
 html.compact .btn { padding: 9px 14px; }
@@ -312,8 +320,12 @@ html.compact .btn { padding: 9px 14px; }
 
 <div id="menu">
   <div class="sheet" role="dialog" aria-label="연습 설정">
-    <h1 class="zen-hide">타격 연습장</h1>
-    <h1 class="zen-only">타격 명상</h1>
+    <div class="titlebar">
+      <h1 class="zen-hide">타격 연습장</h1>
+      <h1 class="zen-only">타격 명상</h1>
+      <button type="button" class="zen-only" id="appBtn" aria-label="앱 설치" title="앱 설치"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3v11m0 0-4.5-4.5M12 14l4.5-4.5M4.5 16.5v2.25c0 .97.78 1.75 1.75 1.75h11.5c.97 0 1.75-.78 1.75-1.75V16.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>앱</span></button>
+      <p class="note" id="appNote" role="status"></p>
+    </div>
     <p class="lead zen-only">공이 오면 칩니다. 친 공의 비거리가 오른쪽 위 누적 거리에 쌓여요.</p>
     <p class="lead zen-hide">투수가 끝없이 던집니다. 타이밍을 맞춰 치면 비거리와 홈런 여부를, 못 치면 스트라이크/볼과 스윙이 빨랐는지 느렸는지를 알려줘요.</p>
     <div class="rows">
@@ -347,7 +359,6 @@ html.compact .btn { padding: 9px 14px; }
         </div>
       </div>
       <div class="row zen-only" id="lbBox">
-        <div id="appBox"><button type="button" class="btn" id="appBtn">앱 설치하기</button><p class="note" id="appNote"></p></div>
         <div id="lbBoard" class="row" hidden>
           <div id="lbTabs" role="tablist"><button type="button" id="tabWeek" aria-pressed="true">이번 주</button><button type="button" id="tabHall" aria-pressed="false">명예의 전당</button></div>
           <ol id="lbList" class="scroll" aria-label="이번 주 순위"></ol>
@@ -3136,9 +3147,10 @@ $('startBtn').addEventListener('click', () => {
 // ---------- 앱 설치: Chrome/Edge/Samsung Internet show their own install dialog; elsewhere, how to add it by hand
 (() => {
   if ('serviceWorker' in navigator && /^https:|^http:\/\/localhost/.test(location.href)) navigator.serviceWorker.register('sw.js').catch(() => {});
-  const box = $('appBox'), note = (t) => { $('appNote').textContent = t || ''; };
+  let noteT = 0; const note = (t) => { $('appNote').textContent = t || ''; clearTimeout(noteT); if (t) noteT = setTimeout(() => note(''), 9000); };
+  document.addEventListener('pointerdown', (e) => { if (!e.target.closest || !e.target.closest('#appBtn, #appNote')) note(''); });
   const installed = () => matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone === true;
-  if (!ZEN || installed()) { box.hidden = true; return; }
+  if (!ZEN || installed()) { $('appBtn').hidden = true; return; }
   let bip = null;
   addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); bip = e; });
   addEventListener('appinstalled', () => { bip = null; note('설치했어요! 홈 화면(앱 목록)의 "타격 명상" 아이콘으로 열면 돼요.'); });
